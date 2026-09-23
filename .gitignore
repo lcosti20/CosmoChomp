@@ -9,7 +9,6 @@ Plugins/*/Binaries
 Plugins/*/Intermediate
 
 /Build/
-/Content/
 /Windows/
 
 # Visual Studio / Rider user files

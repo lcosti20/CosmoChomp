@@ -1,0 +1,30 @@
+# IDE and Compiler folders
+.vs/
+.idea/
+DerivedDataCache/
+Intermediate/
+Saved/
+Binaries/
+Plugins/*/Binaries
+Plugins/*/Intermediate
+
+/Build/
+/Content/
+/Windows/
+
+# Visual Studio / Rider user files
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.slnx
+*.csproj
+
+# Compiled source code
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.obj

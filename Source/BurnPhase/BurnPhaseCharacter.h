@@ -8,6 +8,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UPlanetaryGravityComponent;
 
 UCLASS(config = Game)
 class ABurnPhaseCharacter : public ACharacter
@@ -31,6 +32,9 @@ class ABurnPhaseCharacter : public ACharacter
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MouseLookAction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Planetary Gravity", meta = (AllowPrivateAccess = "true"))
+	UPlanetaryGravityComponent* PlanetaryGravity;
 
 	void InitMovement();
 	void InitCameraBoom();

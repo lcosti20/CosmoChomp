@@ -14,6 +14,7 @@
 #include "Engine/EngineTypes.h"
 #include "CollisionQueryParams.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlanetaryGravityComponent.h"
 
 ABurnPhaseCharacter::ABurnPhaseCharacter()
 {
@@ -25,6 +26,8 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
+
+	PlanetaryGravity = CreateDefaultSubobject<UPlanetaryGravityComponent>(TEXT("PlanetaryGravity"));
 
 	InitMovement();
 	InitCameraBoom();
@@ -78,30 +81,26 @@ void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
 // Used in blueprints
 void ABurnPhaseCharacter::DoMove(float Right, float Forward)
 {
-	if (GetController() != nullptr)
+	AController* LocalController = GetController();
+	if (!LocalController || !PlanetaryGravity)
 	{
-		const FRotator ControlRot = GetController()->GetControlRotation();
-		const FVector SurfaceUp = GetCurrentSurfaceUp(); // always current, no per-frame lag
-
-		// Use the controller's forward vector projected onto the local surface plane.
-		// Previously we constructed a yaw-only rotator with zero pitch/roll which
-		// treated yaw as rotation about world-up; that causes incorrect directions
-		// when the local surface up differs from world up (e.g. near the equator)
-		// and leads to drifting/locking movement. Projecting the controller's
-		// forward vector onto the surface plane preserves the intended heading
-		// relative to the surface.
-		FVector ForwardDir = FVector::VectorPlaneProject(ControlRot.Vector(), SurfaceUp);
-		if (ForwardDir.SizeSquared() < KINDA_SMALL_NUMBER)
-		{
-			ForwardDir = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp);
-		}
-		ForwardDir = ForwardDir.GetSafeNormal();
-
-		FVector RightDir = FVector::CrossProduct(SurfaceUp, ForwardDir).GetSafeNormal();
-
-		AddMovementInput(ForwardDir, Forward);
-		AddMovementInput(RightDir, Right);
+		return;
 	}
+
+	const FRotator ControlRot = GetController()->GetControlRotation();
+	CurrentSurfaceUp = PlanetaryGravity->GetCurrentSurfaceUp();
+
+	FVector ForwardDir = FVector::VectorPlaneProject(ControlRot.Vector(), CurrentSurfaceUp);
+	if (ForwardDir.SizeSquared() < KINDA_SMALL_NUMBER)
+	{
+		ForwardDir = FVector::VectorPlaneProject(GetActorForwardVector(), CurrentSurfaceUp);
+	}
+	ForwardDir = ForwardDir.GetSafeNormal();
+
+	FVector RightDir = FVector::CrossProduct(CurrentSurfaceUp, ForwardDir).GetSafeNormal();
+
+	AddMovementInput(ForwardDir, Forward);
+	AddMovementInput(RightDir, Right);
 }
 
 void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
@@ -140,82 +139,23 @@ void ABurnPhaseCharacter::Tick(float DeltaTime)
 
 void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 {
-	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	AController* LocalController = GetController();
-
-	// If we don't have movement or controller, nothing to update this frame.
-	if (!MovementComp || !LocalController)
+	if (!LocalController || !PlanetaryGravity)
 	{
 		return;
 	}
 
-	// Find and set the nearest planet as the current planetary reference.
-	SetPlanet(FindNearestPlanet());
+	CurrentSurfaceUp = PlanetaryGravity->GetCurrentSurfaceUp();
+	SurfaceOrientation = PlanetaryGravity->GetSurfaceOrientation();
 
-	// Compute the surface "up" vector: from planet center to actor location.
-	// This defines the local vertical for the character relative to the planet.
-	FVector NewSurfaceUp = (GetActorLocation() - PlanetCenter).GetSafeNormal();
 
-	// If the computed up is degenerate (actor exactly at center or too close),
-	// fall back to either the previously initialized surface up or the world up.
-	if (NewSurfaceUp.IsNearlyZero())
-	{
-		NewSurfaceUp = bSurfaceFrameInitialized ? SurfaceOrientation.GetAxisZ() : FVector::UpVector;
-	}
-
-	// If this is the first frame we initialize the surface frame from the actor's forward.
-	if (!bSurfaceFrameInitialized)
-	{
-		// Seed the frame once, using current actor forward as the initial reference.
-		// Project the forward vector onto the tangent plane (plane perpendicular to up)
-		// so that the forward is horizontal relative to the surface.
-		FVector InitialForward = FVector::VectorPlaneProject(GetActorForwardVector(), NewSurfaceUp).GetSafeNormal();
-		if (InitialForward.IsNearlyZero())
-		{
-			// If actor forward was degenerate, use world forward projected onto the surface.
-			InitialForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewSurfaceUp).GetSafeNormal();
-		}
-
-		// Build a rotation (frame) using forward as X and surface up as Z.
-		SurfaceOrientation = FRotationMatrix::MakeFromXZ(InitialForward, NewSurfaceUp).ToQuat();
-		bSurfaceFrameInitialized = true;
-	}
-	else
-	{
-		// For subsequent frames, compute the smallest rotation that takes the old up
-		// direction to the new up direction. This preserves the player's yaw (heading)
-		// relative to the surface instead of reconstructing the entire frame,
-		// which would cause unwanted yaw drift.
-		FVector OldSurfaceUp = SurfaceOrientation.GetAxisZ();
-		FQuat DeltaUpRot = FQuat::FindBetweenNormals(OldSurfaceUp, NewSurfaceUp);
-
-		// Apply the delta rotation to the existing surface orientation and normalize.
-		SurfaceOrientation = DeltaUpRot * SurfaceOrientation;
-		SurfaceOrientation.Normalize();
-	}
-
-	// Cache the current surface up for other systems and set movement gravity direction
-	// to push the character toward the planet (negative of up).
-	CurrentSurfaceUp = NewSurfaceUp;
-	MovementComp->SetGravityDirection(-NewSurfaceUp);
-
-	// Compose the final control rotation that the player should have:
-	// 1) Start with the surface frame (SurfaceOrientation).
-	// 2) Apply yaw rotation around the surface up (preserves heading relative to surface).
-	// 3) Apply pitch rotation around the resulting right axis.
-	//
-	// This order ensures yaw is interpreted relative to the surface's up and that
-	// pitch rotates the camera/player around the right axis after yaw.
 	FQuat YawQuat(SurfaceOrientation.GetAxisZ(), FMath::DegreesToRadians(LookYaw));
 	FQuat FrameWithYaw = YawQuat * SurfaceOrientation;
 	FQuat PitchQuat(FrameWithYaw.GetAxisY(), FMath::DegreesToRadians(LookPitch));
 	FQuat FinalRot = PitchQuat * FrameWithYaw;
 
-	// Apply the composed rotation to the local controller so camera/input aligns with surface.
 	LocalController->SetControlRotation(FinalRot.Rotator());
 
-	// Smoothly or immediately orient the actor mesh/rotation to match the surface frame.
-	// This typically adjusts the actor's up to match CurrentSurfaceUp over time (DeltaTime).
 	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
 }
 

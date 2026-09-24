@@ -1,96 +1,107 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Logging/LogMacros.h"
+#include "InputActionValue.h"
 #include "BurnPhaseCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
-struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
-
-/**
- *  A simple player-controllable third person character
- *  Implements a controllable orbiting camera
- */
-UCLASS(abstract)
+UCLASS(config = Game)
 class ABurnPhaseCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
 
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
-protected:
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* JumpAction;
 
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
 
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
-	/** Mouse Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MouseLookAction;
 
 public:
+	ABurnPhaseCharacter();
 
-	/** Constructor */
-	ABurnPhaseCharacter();	
+	virtual void Tick(float DeltaTime) override;
+
+	/** Call this when entering a planet's gravity field */
+	UFUNCTION(BlueprintCallable, Category = "Planetary Gravity")
+	void SetCurrentPlanetCenter(FVector NewPlanetCenter) { PlanetCenter = NewPlanetCenter; }
+
+	/** Alternatively, pass a reference to the planet actor directly */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
+	AActor* CurrentPlanetActor;
 
 protected:
+	// Accumulated look input, independent of engine ControlRotation
+	float LookYaw = 0.0f;
+	float LookPitch = 0.0f;
 
-	/** Initialize input action bindings */
+	UPROPERTY(EditAnywhere, Category = "Planetary Gravity")
+	float LookYawRate = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Planetary Gravity")
+	float LookPitchRate = 1.0f;
+
+	UPROPERTY(EditAnywhere, Category = "Planetary Gravity")
+	float MaxLookPitch = 85.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
+	float BodyRotationInterpSpeed = 10.0f;
+
+	/** Always-fresh surface-up vector computed from current position (no caching/lag) */
+	FVector GetCurrentSurfaceUp() const;
+
+	void UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp);
+
+	// Persistent, incrementally-updated surface-aligned frame (no yaw/pitch baked in)
+	FQuat SurfaceOrientation = FQuat::Identity;
+
+	// Cached each tick so DoMove and camera code agree on the same "up"
+	FVector CurrentSurfaceUp = FVector::UpVector;
+
+	bool bSurfaceFrameInitialized = false;
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-protected:
-
-	/** Called for movement input */
 	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	void DoMove(float Right, float Forward);
+	void DoLook(float Yaw, float Pitch);
+
+	/** World location of the current planet center */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
+	FVector PlanetCenter = FVector::ZeroVector;
+
+	/** Adjusts player controller and gravity vector to align with local surface normal */
+	void UpdatePlanetaryFrame(float DeltaTime);
+
+	/** Active planet actor pulling the character */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Planetary Gravity")
+	AActor* CurrentPlanet;
+
+	/** Radius around character to search for gravity sources */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
+	float GravitySearchRadius = 10000.0f; // 100 meters
+
+	/** Utility to find the nearest planet actor in range */
+	AActor* FindNearestPlanet();
+
 public:
-
-	/** Handles move inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoMove(float Right, float Forward);
-
-	/** Handles look inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoLook(float Yaw, float Pitch);
-
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpStart();
-
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpEnd();
-
-public:
-
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
-

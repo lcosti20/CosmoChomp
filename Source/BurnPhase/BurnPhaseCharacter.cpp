@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "BurnPhaseCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
@@ -7,127 +5,252 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
+#include "GameFramework/PlayerController.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "BurnPhase.h"
+#include "Engine/World.h"
+#include "Engine/EngineTypes.h"
+#include "CollisionQueryParams.h"
+#include "Kismet/GameplayStatics.h"
 
 ABurnPhaseCharacter::ABurnPhaseCharacter()
 {
-	// Set size for collision capsule
+	PrimaryActorTick.bCanEverTick = true;
+
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
-	// Don't rotate when the controller rotates. Let that just affect the camera.
+
+	// Disable controller-driven character rotation (Orient to movement will handle actor rotation)
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
+	// Movement settings
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	MovementComp->bOrientRotationToMovement = true;
+	MovementComp->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 
-	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
-	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 500.f;
-	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
-	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
-	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
-	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
+	MovementComp->JumpZVelocity = 500.f;
+	MovementComp->AirControl = 0.35f;
+	MovementComp->MaxWalkSpeed = 500.f;
+	MovementComp->MinAnalogWalkSpeed = 20.f;
+	MovementComp->BrakingDecelerationWalking = 2000.f;
+	MovementComp->BrakingDecelerationFalling = 1500.0f;
 
-	// Create a camera boom (pulls in towards the player if there is a collision)
+	// Camera Boom (Spring Arm)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f;
-	CameraBoom->bUsePawnControlRotation = true;
 
-	// Create a follow camera
+	// Inherit Pawn Control Rotation so mouse/stick controls orbit the player relative to the planet surface
+	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->bInheritPitch = true;
+	CameraBoom->bInheritYaw = true;
+	CameraBoom->bInheritRoll = true;
+
+	// Follow Camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 
-	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
+	// We manually align the capsule to the planet surface each tick instead —
+// see UpdateActorOrientationToSurface(). Letting CMC do it assumes a fixed world up.
+	MovementComp->bOrientRotationToMovement = false;
 }
 
-void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ABurnPhaseCharacter::Tick(float DeltaTime)
 {
-	// Set up action bindings
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-		
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+	Super::Tick(DeltaTime);
 
-		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+	UpdatePlanetaryFrame(DeltaTime);
+}
 
-		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
+{
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	AController* LocalController = GetController();
+
+	if (!MovementComp || !LocalController)
+	{
+		return;
+	}
+
+	AActor* NearestPlanet = FindNearestPlanet();
+	if (NearestPlanet)
+	{
+		CurrentPlanet = NearestPlanet;
+		PlanetCenter = CurrentPlanet->GetActorLocation();
+	}
+
+	FVector NewSurfaceUp = (GetActorLocation() - PlanetCenter).GetSafeNormal();
+	if (NewSurfaceUp.IsNearlyZero())
+	{
+		NewSurfaceUp = bSurfaceFrameInitialized ? SurfaceOrientation.GetAxisZ() : FVector::UpVector;
+	}
+
+	if (!bSurfaceFrameInitialized)
+	{
+		// Seed the frame once, using current actor forward as the initial reference
+		FVector InitialForward = FVector::VectorPlaneProject(GetActorForwardVector(), NewSurfaceUp).GetSafeNormal();
+		if (InitialForward.IsNearlyZero())
+		{
+			InitialForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewSurfaceUp).GetSafeNormal();
+		}
+		SurfaceOrientation = FRotationMatrix::MakeFromXZ(InitialForward, NewSurfaceUp).ToQuat();
+		bSurfaceFrameInitialized = true;
 	}
 	else
 	{
-		UE_LOG(LogBurnPhase, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+		// Rotate the existing frame by the SMALLEST rotation that takes its old "up"
+		// to the new "up" — this preserves the player's yaw/forward reference instead
+		// of rebuilding it from scratch every frame.
+		FVector OldSurfaceUp = SurfaceOrientation.GetAxisZ();
+		FQuat DeltaUpRot = FQuat::FindBetweenNormals(OldSurfaceUp, NewSurfaceUp);
+		SurfaceOrientation = DeltaUpRot * SurfaceOrientation;
+		SurfaceOrientation.Normalize();
 	}
-}
 
-void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
-{
-	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	CurrentSurfaceUp = NewSurfaceUp;
+	MovementComp->SetGravityDirection(-NewSurfaceUp);
 
-	// route the input
-	DoMove(MovementVector.X, MovementVector.Y);
-}
+	// Compose final look rotation: surface frame -> yaw around its up -> pitch around resulting right
+	FQuat YawQuat(SurfaceOrientation.GetAxisZ(), FMath::DegreesToRadians(LookYaw));
+	FQuat FrameWithYaw = YawQuat * SurfaceOrientation;
+	FQuat PitchQuat(FrameWithYaw.GetAxisY(), FMath::DegreesToRadians(LookPitch));
+	FQuat FinalRot = PitchQuat * FrameWithYaw;
 
-void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
-{
-	// input is a Vector2D
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	LocalController->SetControlRotation(FinalRot.Rotator());
 
-	// route the input
-	DoLook(LookAxisVector.X, LookAxisVector.Y);
+	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
 }
 
 void ABurnPhaseCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
-		// find out which way is forward
-		const FRotator Rotation = GetController()->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		const FRotator ControlRot = GetController()->GetControlRotation();
+		const FVector SurfaceUp = GetCurrentSurfaceUp(); // always current, no per-frame lag
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		// Use the controller's forward vector projected onto the local surface plane.
+		// Previously we constructed a yaw-only rotator with zero pitch/roll which
+		// treated yaw as rotation about world-up; that causes incorrect directions
+		// when the local surface up differs from world up (e.g. near the equator)
+		// and leads to drifting/locking movement. Projecting the controller's
+		// forward vector onto the surface plane preserves the intended heading
+		// relative to the surface.
+		FVector ForwardDir = FVector::VectorPlaneProject(ControlRot.Vector(), SurfaceUp);
+		if (ForwardDir.SizeSquared() < KINDA_SMALL_NUMBER)
+		{
+			ForwardDir = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp);
+		}
+		ForwardDir = ForwardDir.GetSafeNormal();
 
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		FVector RightDir = FVector::CrossProduct(SurfaceUp, ForwardDir).GetSafeNormal();
 
-		// add movement 
-		AddMovementInput(ForwardDirection, Forward);
-		AddMovementInput(RightDirection, Right);
+		AddMovementInput(ForwardDir, Forward);
+		AddMovementInput(RightDir, Right);
 	}
 }
 
 void ABurnPhaseCharacter::DoLook(float Yaw, float Pitch)
 {
-	if (GetController() != nullptr)
+	LookYaw += Yaw * LookYawRate;
+	LookPitch = FMath::Clamp(LookPitch + Pitch * LookPitchRate, -MaxLookPitch, MaxLookPitch);
+}
+
+void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// add yaw and pitch input to controller
-		AddControllerYawInput(Yaw);
-		AddControllerPitchInput(Pitch);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
 	}
 }
 
-void ABurnPhaseCharacter::DoJumpStart()
+void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
 {
-	// signal the character to jump
-	Jump();
+	FVector2D MovementVector = Value.Get<FVector2D>();
+	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void ABurnPhaseCharacter::DoJumpEnd()
+void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
 {
-	// signal the character to stop jumping
-	StopJumping();
+	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	DoLook(LookAxisVector.X, LookAxisVector.Y);
+}
+
+AActor* ABurnPhaseCharacter::FindNearestPlanet()
+{
+	// Use gameplay utilities to find actors tagged as "Planet" within the level.
+	TArray<AActor*> FoundPlanets;
+	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("Planet"), FoundPlanets);
+
+	AActor* ClosestPlanet = nullptr;
+	float MinDistanceSq = FLT_MAX;
+
+	for (AActor* PlanetActor : FoundPlanets)
+	{
+		if (!PlanetActor)
+		{
+			continue;
+		}
+
+		float DistSq = FVector::DistSquared(GetActorLocation(), PlanetActor->GetActorLocation());
+		if (DistSq <= GravitySearchRadius * GravitySearchRadius && DistSq < MinDistanceSq)
+		{
+			MinDistanceSq = DistSq;
+			ClosestPlanet = PlanetActor;
+		}
+	}
+
+	return ClosestPlanet;
+}
+
+FVector ABurnPhaseCharacter::GetCurrentSurfaceUp() const
+{
+	FVector Up = (GetActorLocation() - PlanetCenter).GetSafeNormal();
+	if (Up.IsNearlyZero())
+	{
+		return bSurfaceFrameInitialized ? SurfaceOrientation.GetAxisZ() : FVector::UpVector;
+	}
+	return Up;
+}
+
+void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp)
+{
+	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	if (!MovementComp)
+	{
+		return;
+	}
+
+	// Face direction of travel when moving with meaningful speed; otherwise keep
+	// current facing, just re-projected onto the (possibly changed) tangent plane
+	// so standing still doesn't cause the body to lean into the ground.
+	FVector DesiredForward;
+	const FVector PlanarVelocity = FVector::VectorPlaneProject(MovementComp->Velocity, SurfaceUp);
+	if (PlanarVelocity.SizeSquared() > FMath::Square(10.0f))
+	{
+		DesiredForward = PlanarVelocity.GetSafeNormal();
+	}
+	else
+	{
+		DesiredForward = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp).GetSafeNormal();
+		if (DesiredForward.IsNearlyZero())
+		{
+			DesiredForward = FVector::VectorPlaneProject(FVector::ForwardVector, SurfaceUp).GetSafeNormal();
+		}
+	}
+
+	const FQuat TargetQuat = FRotationMatrix::MakeFromXZ(DesiredForward, SurfaceUp).ToQuat();
+	const FQuat NewQuat = FMath::QInterpTo(GetActorQuat(), TargetQuat, DeltaTime, BodyRotationInterpSpeed);
+
+	// Non-sweeping: we trust our own surface-normal math and don't want collision
+	// deflection from this — that sweep was the source of the drift.
+	SetActorRotation(NewQuat);
 }

@@ -26,6 +26,13 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
+	InitMovement();
+	InitCameraBoom();
+	InitFollowCamera();
+}
+
+void ABurnPhaseCharacter::InitMovement()
+{
 	// Movement settings
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	MovementComp->bOrientRotationToMovement = true;
@@ -37,7 +44,11 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	MovementComp->MinAnalogWalkSpeed = 20.f;
 	MovementComp->BrakingDecelerationWalking = 2000.f;
 	MovementComp->BrakingDecelerationFalling = 1500.0f;
+	MovementComp->bOrientRotationToMovement = false;
+}
 
+void ABurnPhaseCharacter::InitCameraBoom()
+{
 	// Camera Boom (Spring Arm)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -48,15 +59,14 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	CameraBoom->bInheritPitch = true;
 	CameraBoom->bInheritYaw = true;
 	CameraBoom->bInheritRoll = true;
+}
 
+void ABurnPhaseCharacter::InitFollowCamera()
+{
 	// Follow Camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
-
-	// We manually align the capsule to the planet surface each tick instead —
-// see UpdateActorOrientationToSurface(). Letting CMC do it assumes a fixed world up.
-	MovementComp->bOrientRotationToMovement = false;
 }
 
 void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
@@ -133,57 +143,79 @@ void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	AController* LocalController = GetController();
 
+	// If we don't have movement or controller, nothing to update this frame.
 	if (!MovementComp || !LocalController)
 	{
 		return;
 	}
 
-	AActor* NearestPlanet = FindNearestPlanet();
-	if (NearestPlanet)
-	{
-		CurrentPlanet = NearestPlanet;
-		PlanetCenter = CurrentPlanet->GetActorLocation();
-	}
+	// Find and set the nearest planet as the current planetary reference.
+	SetPlanet(FindNearestPlanet());
 
+	// Compute the surface "up" vector: from planet center to actor location.
+	// This defines the local vertical for the character relative to the planet.
 	FVector NewSurfaceUp = (GetActorLocation() - PlanetCenter).GetSafeNormal();
+
+	// If the computed up is degenerate (actor exactly at center or too close),
+	// fall back to either the previously initialized surface up or the world up.
 	if (NewSurfaceUp.IsNearlyZero())
 	{
 		NewSurfaceUp = bSurfaceFrameInitialized ? SurfaceOrientation.GetAxisZ() : FVector::UpVector;
 	}
 
+	// If this is the first frame we initialize the surface frame from the actor's forward.
 	if (!bSurfaceFrameInitialized)
 	{
-		// Seed the frame once, using current actor forward as the initial reference
+		// Seed the frame once, using current actor forward as the initial reference.
+		// Project the forward vector onto the tangent plane (plane perpendicular to up)
+		// so that the forward is horizontal relative to the surface.
 		FVector InitialForward = FVector::VectorPlaneProject(GetActorForwardVector(), NewSurfaceUp).GetSafeNormal();
 		if (InitialForward.IsNearlyZero())
 		{
+			// If actor forward was degenerate, use world forward projected onto the surface.
 			InitialForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewSurfaceUp).GetSafeNormal();
 		}
+
+		// Build a rotation (frame) using forward as X and surface up as Z.
 		SurfaceOrientation = FRotationMatrix::MakeFromXZ(InitialForward, NewSurfaceUp).ToQuat();
 		bSurfaceFrameInitialized = true;
 	}
 	else
 	{
-		// Rotate the existing frame by the SMALLEST rotation that takes its old "up"
-		// to the new "up" — this preserves the player's yaw/forward reference instead
-		// of rebuilding it from scratch every frame.
+		// For subsequent frames, compute the smallest rotation that takes the old up
+		// direction to the new up direction. This preserves the player's yaw (heading)
+		// relative to the surface instead of reconstructing the entire frame,
+		// which would cause unwanted yaw drift.
 		FVector OldSurfaceUp = SurfaceOrientation.GetAxisZ();
 		FQuat DeltaUpRot = FQuat::FindBetweenNormals(OldSurfaceUp, NewSurfaceUp);
+
+		// Apply the delta rotation to the existing surface orientation and normalize.
 		SurfaceOrientation = DeltaUpRot * SurfaceOrientation;
 		SurfaceOrientation.Normalize();
 	}
 
+	// Cache the current surface up for other systems and set movement gravity direction
+	// to push the character toward the planet (negative of up).
 	CurrentSurfaceUp = NewSurfaceUp;
 	MovementComp->SetGravityDirection(-NewSurfaceUp);
 
-	// Compose final look rotation: surface frame -> yaw around its up -> pitch around resulting right
+	// Compose the final control rotation that the player should have:
+	// 1) Start with the surface frame (SurfaceOrientation).
+	// 2) Apply yaw rotation around the surface up (preserves heading relative to surface).
+	// 3) Apply pitch rotation around the resulting right axis.
+	//
+	// This order ensures yaw is interpreted relative to the surface's up and that
+	// pitch rotates the camera/player around the right axis after yaw.
 	FQuat YawQuat(SurfaceOrientation.GetAxisZ(), FMath::DegreesToRadians(LookYaw));
 	FQuat FrameWithYaw = YawQuat * SurfaceOrientation;
 	FQuat PitchQuat(FrameWithYaw.GetAxisY(), FMath::DegreesToRadians(LookPitch));
 	FQuat FinalRot = PitchQuat * FrameWithYaw;
 
+	// Apply the composed rotation to the local controller so camera/input aligns with surface.
 	LocalController->SetControlRotation(FinalRot.Rotator());
 
+	// Smoothly or immediately orient the actor mesh/rotation to match the surface frame.
+	// This typically adjusts the actor's up to match CurrentSurfaceUp over time (DeltaTime).
 	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
 }
 
@@ -197,6 +229,15 @@ void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+	}
+}
+
+void ABurnPhaseCharacter::SetPlanet(AActor* Planet)
+{
+	if (Planet)
+	{
+		CurrentPlanet = Planet;
+		PlanetCenter = CurrentPlanet->GetActorLocation();
 	}
 }
 

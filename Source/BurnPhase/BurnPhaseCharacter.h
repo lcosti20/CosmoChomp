@@ -32,6 +32,10 @@ class ABurnPhaseCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MouseLookAction;
 
+	void InitMovement();
+	void InitCameraBoom();
+	void InitFollowCamera();
+
 public:
 	ABurnPhaseCharacter();
 
@@ -98,4 +102,5 @@ protected:
 
 	/** Utility to find the nearest planet actor in range */
 	AActor* FindNearestPlanet();
+	void SetPlanet(AActor* NearestPlanet);
 };

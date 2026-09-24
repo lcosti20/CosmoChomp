@@ -72,6 +72,19 @@ void ABurnPhaseCharacter::InitFollowCamera()
 	FollowCamera->bUsePawnControlRotation = false;
 }
 
+void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+	}
+}
+
 void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -148,7 +161,6 @@ void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 	CurrentSurfaceUp = PlanetaryGravity->GetCurrentSurfaceUp();
 	SurfaceOrientation = PlanetaryGravity->GetSurfaceOrientation();
 
-
 	FQuat YawQuat(SurfaceOrientation.GetAxisZ(), FMath::DegreesToRadians(LookYaw));
 	FQuat FrameWithYaw = YawQuat * SurfaceOrientation;
 	FQuat PitchQuat(FrameWithYaw.GetAxisY(), FMath::DegreesToRadians(LookPitch));
@@ -157,65 +169,6 @@ void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 	LocalController->SetControlRotation(FinalRot.Rotator());
 
 	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
-}
-
-void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
-
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
-	}
-}
-
-void ABurnPhaseCharacter::SetPlanet(AActor* Planet)
-{
-	if (Planet)
-	{
-		CurrentPlanet = Planet;
-		PlanetCenter = CurrentPlanet->GetActorLocation();
-	}
-}
-
-AActor* ABurnPhaseCharacter::FindNearestPlanet()
-{
-	// Use gameplay utilities to find actors tagged as "Planet" within the level.
-	TArray<AActor*> FoundPlanets;
-	UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("Planet"), FoundPlanets);
-
-	AActor* ClosestPlanet = nullptr;
-	float MinDistanceSq = FLT_MAX;
-
-	for (AActor* PlanetActor : FoundPlanets)
-	{
-		if (!PlanetActor)
-		{
-			continue;
-		}
-
-		float DistSq = FVector::DistSquared(GetActorLocation(), PlanetActor->GetActorLocation());
-		if (DistSq <= GravitySearchRadius * GravitySearchRadius && DistSq < MinDistanceSq)
-		{
-			MinDistanceSq = DistSq;
-			ClosestPlanet = PlanetActor;
-		}
-	}
-
-	return ClosestPlanet;
-}
-
-FVector ABurnPhaseCharacter::GetCurrentSurfaceUp() const
-{
-	FVector Up = (GetActorLocation() - PlanetCenter).GetSafeNormal();
-	if (Up.IsNearlyZero())
-	{
-		return bSurfaceFrameInitialized ? SurfaceOrientation.GetAxisZ() : FVector::UpVector;
-	}
-	return Up;
 }
 
 void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp)

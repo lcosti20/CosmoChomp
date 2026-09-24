@@ -62,9 +62,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
 	float BodyRotationInterpSpeed = 10.0f;
 
-	/** Always-fresh surface-up vector computed from current position (no caching/lag) */
-	FVector GetCurrentSurfaceUp() const;
-
 	void UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp);
 
 	// Persistent, incrementally-updated surface-aligned frame (no yaw/pitch baked in)
@@ -89,22 +86,6 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void DoJumpEnd();
 
-	/** World location of the current planet center */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
-	FVector PlanetCenter = FVector::ZeroVector;
-
 	/** Adjusts player controller and gravity vector to align with local surface normal */
 	void UpdatePlanetaryFrame(float DeltaTime);
-
-	/** Active planet actor pulling the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Planetary Gravity")
-	AActor* CurrentPlanet;
-
-	/** Radius around character to search for gravity sources */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
-	float GravitySearchRadius = 10000.0f; // 100 meters
-
-	/** Utility to find the nearest planet actor in range */
-	AActor* FindNearestPlanet();
-	void SetPlanet(AActor* NearestPlanet);
 };

@@ -36,47 +36,73 @@ void UPlanetaryGravityComponent::UpdatePlanetaryFrame(float DeltaTime)
 
 	if (!bSurfaceFrameInitialized)
 	{
-		// Seed the frame once, using current owner forward as the initial reference,
-		// projected onto the tangent plane so it's horizontal relative to the surface.
-		FVector InitialForward = FVector::VectorPlaneProject(Owner->GetActorForwardVector(), NewSurfaceUp).GetSafeNormal();
-		if (InitialForward.IsNearlyZero())
-		{
-			InitialForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewSurfaceUp).GetSafeNormal();
-		}
-
-		SurfaceOrientation = FRotationMatrix::MakeFromXZ(InitialForward, NewSurfaceUp).ToQuat();
-		bSurfaceFrameInitialized = true;
+		InitializeSurfaceFrame(NewSurfaceUp, Owner);
 	}
 	else
 	{
-		// Compute the smallest rotation taking the old up to the new up. This
-		// preserves heading relative to the surface instead of reconstructing the
-		// whole frame (which would cause yaw drift).
-		FVector OldSurfaceUp = SurfaceOrientation.GetAxisZ();
-		FQuat DeltaUpRot = FQuat::FindBetweenNormals(OldSurfaceUp, NewSurfaceUp);
-
-		SurfaceOrientation = DeltaUpRot * SurfaceOrientation;
-		SurfaceOrientation.Normalize();
+		UpdateSurfaceFrame(NewSurfaceUp);
 	}
 
 	CurrentSurfaceUp = NewSurfaceUp;
 
-	if (bDriveMovementComponentGravity)
-	{
-		if (UMovementComponent* MovementComp = Owner->FindComponentByClass<UMovementComponent>())
-		{
-			// Try to call SetGravityDirection if the movement component implements it (via subclass or blueprint).
-			// Use reflection to avoid a compile-time dependency on a specific subclass.
-			if (UFunction* Func = MovementComp->GetClass()->FindFunctionByName(TEXT("SetGravityDirection")))
-			{
-				struct FSetGravityDirectionParams { FVector NewDirection; } Params;
-				Params.NewDirection = -NewSurfaceUp;
-				MovementComp->ProcessEvent(Func, &Params);
-			}
-		}
-	}
+	UpdateGravity(NewSurfaceUp, Owner);
 
 	OnSurfaceFrameUpdated.Broadcast(CurrentSurfaceUp, SurfaceOrientation);
+}
+
+void UPlanetaryGravityComponent::InitializeSurfaceFrame(const FVector& NewSurfaceUp, AActor* Owner)
+{
+	// Seed the frame once, using current owner forward as the initial reference,
+	// projected onto the tangent plane so it's horizontal relative to the surface.
+	FVector InitialForward = FVector::VectorPlaneProject(Owner->GetActorForwardVector(), NewSurfaceUp).GetSafeNormal();
+	if (InitialForward.IsNearlyZero())
+	{
+		InitialForward = FVector::VectorPlaneProject(FVector::ForwardVector, NewSurfaceUp).GetSafeNormal();
+	}
+
+	SurfaceOrientation = FRotationMatrix::MakeFromXZ(InitialForward, NewSurfaceUp).ToQuat();
+	bSurfaceFrameInitialized = true;
+}
+
+void UPlanetaryGravityComponent::UpdateSurfaceFrame(const FVector& NewSurfaceUp)
+{
+	// Compute the smallest rotation taking the old up to the new up. This
+	// preserves heading relative to the surface instead of reconstructing the
+	// whole frame (which would cause yaw drift).
+	FVector OldSurfaceUp = SurfaceOrientation.GetAxisZ();
+	FQuat DeltaUpRot = FQuat::FindBetweenNormals(OldSurfaceUp, NewSurfaceUp);
+
+	SurfaceOrientation = DeltaUpRot * SurfaceOrientation;
+	SurfaceOrientation.Normalize();
+}
+
+void UPlanetaryGravityComponent::UpdateGravity(const FVector& NewSurfaceUp, AActor* Owner)
+{
+	UMovementComponent* MovementComp;
+	UFunction* Func;
+
+	if (!bDriveMovementComponentGravity)
+	{
+		return;
+	}
+
+	MovementComp = Owner->FindComponentByClass<UMovementComponent>();
+	if (!MovementComp)
+	{
+		return;
+	}
+
+	// Try to call SetGravityDirection if the movement component implements it (via subclass or blueprint).
+	// Use reflection to avoid a compile-time dependency on a specific subclass.
+	Func = MovementComp->GetClass()->FindFunctionByName(TEXT("SetGravityDirection"));
+	if (!Func)
+	{
+		return;
+	}
+
+	struct FSetGravityDirectionParams { FVector NewDirection; } Params;
+	Params.NewDirection = -NewSurfaceUp;
+	MovementComp->ProcessEvent(Func, &Params);
 }
 
 FVector UPlanetaryGravityComponent::GetCurrentSurfaceUp() const

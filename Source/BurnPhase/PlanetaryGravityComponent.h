@@ -75,4 +75,7 @@ protected:
 	AActor* FindNearestPlanet() const;
 	void SetPlanet(AActor* NearestPlanet);
 	void UpdatePlanetaryFrame(float DeltaTime);
+	void InitializeSurfaceFrame(const FVector& NewSurfaceUp, AActor* Owner);
+	void UpdateSurfaceFrame(const FVector& NewSurfaceUp);
+	void UpdateGravity(const FVector& NewSurfaceUp, AActor* Owner);
 };

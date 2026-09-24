@@ -62,8 +62,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
 	float BodyRotationInterpSpeed = 10.0f;
 
-	void UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp);
-
 	// Persistent, incrementally-updated surface-aligned frame (no yaw/pitch baked in)
 	FQuat SurfaceOrientation = FQuat::Identity;
 
@@ -85,7 +83,4 @@ protected:
 	void DoJumpStart();
 	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void DoJumpEnd();
-
-	/** Adjusts player controller and gravity vector to align with local surface normal */
-	void UpdatePlanetaryFrame(float DeltaTime);
 };

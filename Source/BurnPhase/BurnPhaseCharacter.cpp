@@ -147,11 +147,8 @@ void ABurnPhaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdatePlanetaryFrame(DeltaTime);
-}
-
-void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
-{
+	// Update planetary frame
+	// ------------------------------------------------
 	AController* LocalController = GetController();
 	if (!LocalController || !PlanetaryGravity)
 	{
@@ -168,11 +165,8 @@ void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 
 	LocalController->SetControlRotation(FinalRot.Rotator());
 
-	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
-}
-
-void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const FVector& SurfaceUp)
-{
+	// Update actor orientation to surface
+	// ------------------------------------------------
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
 	if (!MovementComp)
 	{
@@ -183,21 +177,21 @@ void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const
 	// current facing, just re-projected onto the (possibly changed) tangent plane
 	// so standing still doesn't cause the body to lean into the ground.
 	FVector DesiredForward;
-	const FVector PlanarVelocity = FVector::VectorPlaneProject(MovementComp->Velocity, SurfaceUp);
+	const FVector PlanarVelocity = FVector::VectorPlaneProject(MovementComp->Velocity, CurrentSurfaceUp);
 	if (PlanarVelocity.SizeSquared() > FMath::Square(10.0f))
 	{
 		DesiredForward = PlanarVelocity.GetSafeNormal();
 	}
 	else
 	{
-		DesiredForward = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp).GetSafeNormal();
+		DesiredForward = FVector::VectorPlaneProject(GetActorForwardVector(), CurrentSurfaceUp).GetSafeNormal();
 		if (DesiredForward.IsNearlyZero())
 		{
-			DesiredForward = FVector::VectorPlaneProject(FVector::ForwardVector, SurfaceUp).GetSafeNormal();
+			DesiredForward = FVector::VectorPlaneProject(FVector::ForwardVector, CurrentSurfaceUp).GetSafeNormal();
 		}
 	}
 
-	const FQuat TargetQuat = FRotationMatrix::MakeFromXZ(DesiredForward, SurfaceUp).ToQuat();
+	const FQuat TargetQuat = FRotationMatrix::MakeFromXZ(DesiredForward, CurrentSurfaceUp).ToQuat();
 	const FQuat NewQuat = FMath::QInterpTo(GetActorQuat(), TargetQuat, DeltaTime, BodyRotationInterpSpeed);
 
 	// Non-sweeping: we trust our own surface-normal math and don't want collision

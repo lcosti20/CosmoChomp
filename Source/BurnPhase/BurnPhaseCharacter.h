@@ -37,14 +37,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	/** Call this when entering a planet's gravity field */
-	UFUNCTION(BlueprintCallable, Category = "Planetary Gravity")
-	void SetCurrentPlanetCenter(FVector NewPlanetCenter) { PlanetCenter = NewPlanetCenter; }
-
-	/** Alternatively, pass a reference to the planet actor directly */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")
-	AActor* CurrentPlanetActor;
-
 protected:
 	// Accumulated look input, independent of engine ControlRotation
 	float LookYaw = 0.0f;
@@ -106,8 +98,4 @@ protected:
 
 	/** Utility to find the nearest planet actor in range */
 	AActor* FindNearestPlanet();
-
-public:
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };

@@ -59,6 +59,68 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	MovementComp->bOrientRotationToMovement = false;
 }
 
+void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
+{
+	FVector2D MovementVector = Value.Get<FVector2D>();
+	DoMove(MovementVector.X, MovementVector.Y);
+}
+
+// Used in blueprints
+void ABurnPhaseCharacter::DoMove(float Right, float Forward)
+{
+	if (GetController() != nullptr)
+	{
+		const FRotator ControlRot = GetController()->GetControlRotation();
+		const FVector SurfaceUp = GetCurrentSurfaceUp(); // always current, no per-frame lag
+
+		// Use the controller's forward vector projected onto the local surface plane.
+		// Previously we constructed a yaw-only rotator with zero pitch/roll which
+		// treated yaw as rotation about world-up; that causes incorrect directions
+		// when the local surface up differs from world up (e.g. near the equator)
+		// and leads to drifting/locking movement. Projecting the controller's
+		// forward vector onto the surface plane preserves the intended heading
+		// relative to the surface.
+		FVector ForwardDir = FVector::VectorPlaneProject(ControlRot.Vector(), SurfaceUp);
+		if (ForwardDir.SizeSquared() < KINDA_SMALL_NUMBER)
+		{
+			ForwardDir = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp);
+		}
+		ForwardDir = ForwardDir.GetSafeNormal();
+
+		FVector RightDir = FVector::CrossProduct(SurfaceUp, ForwardDir).GetSafeNormal();
+
+		AddMovementInput(ForwardDir, Forward);
+		AddMovementInput(RightDir, Right);
+	}
+}
+
+void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
+{
+	FVector2D LookAxisVector = Value.Get<FVector2D>();
+	DoLook(LookAxisVector.X, LookAxisVector.Y);
+}
+
+// Used in blueprints
+void ABurnPhaseCharacter::DoLook(float Yaw, float Pitch)
+{
+	LookYaw += Yaw * LookYawRate;
+	LookPitch = FMath::Clamp(LookPitch + Pitch * LookPitchRate, -MaxLookPitch, MaxLookPitch);
+}
+
+// Used in blueprints
+void ABurnPhaseCharacter::DoJumpStart()
+{
+	// signal the character to jump
+	Jump();
+}
+
+// Used in blueprints
+void ABurnPhaseCharacter::DoJumpEnd()
+{
+	// signal the character to stop jumping
+	StopJumping();
+}
+
 void ABurnPhaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -125,40 +187,6 @@ void ABurnPhaseCharacter::UpdatePlanetaryFrame(float DeltaTime)
 	UpdateActorOrientationToSurface(DeltaTime, CurrentSurfaceUp);
 }
 
-void ABurnPhaseCharacter::DoMove(float Right, float Forward)
-{
-	if (GetController() != nullptr)
-	{
-		const FRotator ControlRot = GetController()->GetControlRotation();
-		const FVector SurfaceUp = GetCurrentSurfaceUp(); // always current, no per-frame lag
-
-		// Use the controller's forward vector projected onto the local surface plane.
-		// Previously we constructed a yaw-only rotator with zero pitch/roll which
-		// treated yaw as rotation about world-up; that causes incorrect directions
-		// when the local surface up differs from world up (e.g. near the equator)
-		// and leads to drifting/locking movement. Projecting the controller's
-		// forward vector onto the surface plane preserves the intended heading
-		// relative to the surface.
-		FVector ForwardDir = FVector::VectorPlaneProject(ControlRot.Vector(), SurfaceUp);
-		if (ForwardDir.SizeSquared() < KINDA_SMALL_NUMBER)
-		{
-			ForwardDir = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceUp);
-		}
-		ForwardDir = ForwardDir.GetSafeNormal();
-
-		FVector RightDir = FVector::CrossProduct(SurfaceUp, ForwardDir).GetSafeNormal();
-
-		AddMovementInput(ForwardDir, Forward);
-		AddMovementInput(RightDir, Right);
-	}
-}
-
-void ABurnPhaseCharacter::DoLook(float Yaw, float Pitch)
-{
-	LookYaw += Yaw * LookYawRate;
-	LookPitch = FMath::Clamp(LookPitch + Pitch * LookPitchRate, -MaxLookPitch, MaxLookPitch);
-}
-
 void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
@@ -170,18 +198,6 @@ void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
 	}
-}
-
-void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
-{
-	FVector2D MovementVector = Value.Get<FVector2D>();
-	DoMove(MovementVector.X, MovementVector.Y);
-}
-
-void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
-{
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
 AActor* ABurnPhaseCharacter::FindNearestPlanet()
@@ -253,16 +269,4 @@ void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const
 	// Non-sweeping: we trust our own surface-normal math and don't want collision
 	// deflection from this — that sweep was the source of the drift.
 	SetActorRotation(NewQuat);
-}
-
-void ABurnPhaseCharacter::DoJumpStart()
-{
-	// signal the character to jump
-	Jump();
-}
-
-void ABurnPhaseCharacter::DoJumpEnd()
-{
-	// signal the character to stop jumping
-	StopJumping();
 }

@@ -254,3 +254,15 @@ void ABurnPhaseCharacter::UpdateActorOrientationToSurface(float DeltaTime, const
 	// deflection from this — that sweep was the source of the drift.
 	SetActorRotation(NewQuat);
 }
+
+void ABurnPhaseCharacter::DoJumpStart()
+{
+	// signal the character to jump
+	Jump();
+}
+
+void ABurnPhaseCharacter::DoJumpEnd()
+{
+	// signal the character to stop jumping
+	StopJumping();
+}

@@ -80,8 +80,14 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void DoMove(float Right, float Forward);
+	UFUNCTION(BlueprintCallable, Category = "Movement")
 	void DoLook(float Yaw, float Pitch);
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void DoJumpStart();
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void DoJumpEnd();
 
 	/** World location of the current planet center */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Planetary Gravity")

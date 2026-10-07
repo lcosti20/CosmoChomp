@@ -1,101 +1,109 @@
-# Burn Phase 🚀🤖
+# Burn Phase 🚀
 
-**Burn Phase** is a third-person action-adventure prototype combining arcade platforming, multi-vehicle mechanics, and orbital physics combat across twin dying worlds. Developed in Unreal Engine as part of the GAME 405 Interactive Design and Game Dev Studio I course at the Savannah College of Art and Design (SCAD).
+Burn Phase is a third-person action-adventure prototype that blends arcade platforming, vehicle traversal, and orbital combat across twin dying worlds. Built in Unreal Engine 5, the project explores spherical gravity, anti-gravity travel, and large-scale traversal in a compact vertical-slice experience.
 
----
+## Overview
 
-## 🌌 Overview & Premise
+Eons after the extinction of biological life, two shell-worlds orbit twin miniature black holes and are separated by a narrow but deadly void. You play as Bob-3267, a newly rebooted maintenance unit, as he awakens amid escalating conflict between the Red and Blue factions.
 
-Eons after the extinction of biological life and the death of the stars, two tidally locked shell-worlds orbit twin miniature black holes separated by $1200\text{m}$ of open space. The **Red Faction** and **Blue Faction** have waged an endless, forgotten war for millions of years—so long that neither side retains any memory logs of why it started.
+The prototype focuses on a short story-driven experience with fast movement, environmental traversal, and dynamic combat across multiple gameplay layers:
 
-You play as **Bob-3267**, a newly rebooted maintenance unit who awakens amidst the crossfire. Across a ~15-minute story vertical slice, players navigate $360^\circ$ spherical gravity, pilot land and space vehicles, board orbiting frigates, and ultimately choose which faction to align with (or trick both into an arbitrary truce).
+- walking and platforming across spherical shell-worlds
+- vehicle-based movement across land, atmosphere, and space
+- weapon switching between melee and ranged combat
+- faction-driven narrative choices and dialogue
+- a compact 10-week studio prototype aimed at testing core systems
 
----
+## Core Features
 
-## 🎮 Key Features
+- Spherical gravity traversal: explore a 360-degree world with gravity-driven movement and platforming
+- Dual combat modes: melee-focused movement and aim-assisted ranged attacks
+- Anti-gravity lifts: launch across the gap between worlds and use momentum to traverse large distances
+- Multi-vehicle traversal:
+  - land vehicles such as hovercrafts and mechs
+  - atmospheric vehicles such as jets and helicopters
+  - spacecraft using orbital velocity and spaceflight physics
+- Space frigate boarding: close-quarters combat and traversal inside orbital structures
+- Branching narrative: faction-based choices and lighthearted dialogue with replayable paths
 
-* **Spherical Point Gravity:** Complete $360^\circ$ walking, platforming, and combat on spherical shell-worlds ($80\text{--}100\text{m}$ radius).
-* **Dual Combat Modes:** Dynamic third-person targeting—toggle between **Melee Mode** for platforming/slashing and **Aim Mode** (Right Trigger) for laser rifles and rocket launchers.
-* **Interplanetary Anti-Gravity Lifts:** Planet-facing acceleration pads that launch players, vehicles, and enemy NPCs across the $1200\text{m}$ void between worlds.
-* **Multi-Vehicle Traversal:**
-  * **Land:** Agile hovercrafts and heavy combat mechs.
-  * **Atmospheric Flight:** Jets and helicopters bounded by planetary gas layers.
-  * **Spaceflight & Orbital Physics:** Spacecraft featuring Keplerian orbital velocity mechanics.
-* **Space Frigate Boarding:** Orbiting capital ships with localized interior artificial gravity for close-quarters boarding action.
-* **Branching Story:** Lighthearted, witty dialogue system featuring faction choice paths between the Red and Blue Factions.
+## Technical Stack
 
----
+- Engine: Unreal Engine 5
+- Primary tooling: C++ and Blueprints
+- Focus areas: custom gravity systems, orbital movement, vehicle logic, combat flow, and level traversal
+- Platform: PC with gamepad and keyboard/mouse support
 
-## 🛠️ Technical Details & Stack
-
-* **Engine:** Unreal Engine 5
-* **Primary Language:** C++ / Blueprints
-* **Gravity Implementation:** Custom $N$-body / point-based gravity vector calculation per tick.
-* **Platform:** PC (Gamepad & Keyboard/Mouse support)
-
----
-
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
-├── Config/                  # Project configuration files
-├── Content/                 # Game assets, Blueprints, Materials, and Maps
-│   ├── Audio/               # SFX and dialogue audio
-│   ├── Blueprints/          # Core game logic, character controllers, and vehicle Blueprints
-│   ├── Maps/                # Main level (ShellWorlds_Master.umap) and greybox test tracks
-│   ├── Materials/           # Shaders, master materials, and visual effects
-│   └── Meshes/              # 3D models for Bob-3267, vehicles, terrain, and props
-├── Source/                  # C++ source code files
-│   └── BurnPhase/           # Core game module source files
-├── BurnPhase.uproject       # Unreal Engine project file
-└── README.md                # Project documentation
-
+BurnPhase/
+├── Config/                     # Unreal project configuration files
+├── Content/                    # Game assets, blueprints, maps, materials, and audio
+│   ├── Audio/                  # Sound effects and dialogue audio
+│   ├── Blueprints/             # Core gameplay logic and systems
+│   ├── Maps/                   # Level files and greybox test environments
+│   ├── Materials/              # Materials, shaders, and VFX setup
+│   └── Meshes/                 # 3D assets for characters, props, and vehicles
+├── Source/                     # C++ source code for the project module
+│   └── BurnPhase/              # Main gameplay implementation
+├── BurnPhase.uproject          # Unreal Engine project file
+├── .gitignore                 # Git ignore rules for Unreal projects
+├── .gitattributes             # Git attributes configuration
+├── .vsconfig                  # Visual Studio configuration for UE projects
+├── README.md                  # Project documentation
+└── LICENSE                    # If present, repository licensing details
 ```
 
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
-* **Unreal Engine 5.x** installed via Epic Games Launcher.
-* **Visual Studio 2022** (with C++ Game Development workload installed).
+- Unreal Engine 5.x installed through the Epic Games Launcher
+- Visual Studio 2022 with the C++ Game Development workload
 
-### Installation & Setup
+### Setup
 
 1. Clone the repository:
-```bash
-git clone [https://github.com/lcosti20/burnphase.git](https://github.com/lcosti20/burnphase.git)
 
+```bash
+git clone https://github.com/lcosti20/burnphase.git
 ```
 
+2. Open `BurnPhase.uproject` in Unreal Engine.
+3. If prompted, generate project files and allow Unreal Engine to configure the project.
+4. Open the generated solution in Visual Studio and build the project in Development Editor mode.
+5. Launch the project from Unreal Editor and open the main map to begin testing.
 
-2. Right-click `BurnPhase.uproject` and select **Generate Visual Studio project files**.
-3. Open `BurnPhase.sln` in Visual Studio and build the solution in `Development Editor` mode.
-4. Launch `BurnPhase.uproject` to open the project in Unreal Editor.
-5. Open `Content/Maps/ShellWorlds_Master.umap` and press **Play in Editor (PIE)**.
+## Controls
 
----
+The prototype is designed for controller-first play, with a support-focused control scheme:
 
-## 📅 Development Roadmap (10-Week Studio)
+- Movement: analog stick / WASD
+- Melee mode: close-range combat and traversal-focused action
+- Aim mode: precision targeting for ranged weapons
+- Right trigger: toggle to aim / use ranged combat tools
 
-* [x] **Sprint 1: Project Pitch & Vision** — Initial concept, spherical gravity proof of concept.
-* [x] **Sprint 2: Preproduction & Greybox** — Level diagram flow, Melee/Aim camera mechanics.
-* [ ] **Sprint 3: Technical Framework** — Orbital physics, anti-gravity lifts, character controller, base UI framework.
-* [ ] **Sprint 4: Production Alpha** — Vehicle possession logic, space frigate interior gravity, dialogue system, Test Candidate 01.
-* [ ] **Sprint 5: Production Beta & Polish** — VFX/SFX pass, UI refinement, bug fixing, Test Candidate 02.
-* [ ] **Sprint 6: Final Release & Trailer** — Gameplay trailer, final build submission, postmortem.
+## Development Roadmap
 
----
+- [x] Sprint 1: Project pitch and vision
+- [x] Sprint 2: Preproduction and greybox testing
+- [ ] Sprint 3: Technical framework
+- [ ] Sprint 4: Production alpha
+- [ ] Sprint 5: Production beta and polish
+- [ ] Sprint 6: Final release and trailer
 
-## 🌐 Project Documentation
+## Project Documentation
 
-For complete development logs, sprint breakdown screenshots, and course deliverables, visit the official outcome site:
-👉 **[Larry's GAME 405 Course Outcome Site](https://sites.google.com/view/larrys-game-405-project/home)**
+For development logs, sprint notes, and course deliverables, see the project outcome site:
 
----
+- Larry's GAME 405 Course Outcome Site: https://sites.google.com/view/larrys-game-405-project/home
 
-## 👤 Author
+## Credits
 
-* **Larry Costigan** — Game Designer & Developer (SCAD)
-* **Course:** GAME 405 - Interactive Design and Game Dev Studio I (Prof. Wan Chiu)
+- Larry Costigan — Game Designer & Developer
+- Course: GAME 405 - Interactive Design and Game Dev Studio I
+- Instructor: Prof. Wan Chiu
+
+## Notes
+
+This repository is a prototype and may evolve as gameplay systems and content are expanded during development. The focus is on proving the core concept: a gravity-driven, multi-vehicle action game set across two linked worlds.

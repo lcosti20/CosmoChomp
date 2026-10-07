@@ -1,6 +1,6 @@
 # Burn Phase 🚀
 
-Burn Phase is a third-person action-adventure prototype that blends arcade platforming, vehicle traversal, and orbital combat across twin dying worlds. Built in Unreal Engine 5, the project explores spherical gravity, anti-gravity travel, and large-scale traversal in a compact vertical-slice experience. *([Google site](https://sites.google.com/view/larrys-game-405-project/game) | [Sprint tracker](https://facultypages.scad.edu/~wchiu/405/SprintTracker/index.html#/p/s39e9h2))*
+Burn Phase is a third-person action-adventure prototype that blends arcade platforming, vehicle traversal, and orbital combat across twin dying worlds. Built in Unreal Engine 5, the project explores spherical gravity, anti-gravity travel, and large-scale traversal in a compact vertical-slice experience.
 
 ## Overview
 
@@ -97,6 +97,7 @@ The prototype is designed for controller-first play, with a support-focused cont
 For development logs, sprint notes, and course deliverables, see the project outcome site:
 
 - Larry's GAME 405 Course Outcome Site: https://sites.google.com/view/larrys-game-405-project/home
+- Sprint tracker: https://facultypages.scad.edu/~wchiu/405/SprintTracker/index.html#/p/s39e9h2
 
 ## Credits
 

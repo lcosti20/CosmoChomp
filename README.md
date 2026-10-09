@@ -88,6 +88,12 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 - Fight back: use the ray gun when you find it to shoot alien monsters
 - Escape: gather enough energy and return to your spaceship to leave the planet
 
+## Credits
+
+- Larry Costigan — Game Designer & Developer
+- Course: GAME 266 - Core Principles: Game Tech
+- Instructor: Prof. James Taylor
+
 ## Notes
 
 Cosmo Chomp is focused on a compact, replayable prototype built around the fantasy of exploring a dangerous alien maze, collecting energy, and escaping before the planet's creatures overrun you. The game is designed to feel easy to learn, but strategically tense as you balance exploration, combat, and escape timing.

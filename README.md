@@ -83,28 +83,6 @@ The prototype is designed for controller-first play, with a support-focused cont
 - Aim mode: precision targeting for ranged weapons
 - Right trigger: toggle to aim / use ranged combat tools
 
-## Development Roadmap
-
-- [x] Sprint 1: Project pitch and vision
-- [x] Sprint 2: Preproduction and greybox testing
-- [ ] Sprint 3: Technical framework
-- [ ] Sprint 4: Production alpha
-- [ ] Sprint 5: Production beta and polish
-- [ ] Sprint 6: Final release and trailer
-
-## Project Documentation
-
-For development logs, sprint notes, and course deliverables, see the project outcome site:
-
-- Larry's GAME 405 Course Outcome Site: https://sites.google.com/view/larrys-game-405-project/home
-- Sprint tracker: https://facultypages.scad.edu/~wchiu/405/SprintTracker/index.html#/p/s39e9h2
-
-## Credits
-
-- Larry Costigan — Game Designer & Developer
-- Course: GAME 405 - Interactive Design and Game Dev Studio I
-- Instructor: Prof. Wan Chiu
-
 ## Notes
 
 This repository is a prototype and may evolve as gameplay systems and content are expanded during development. The focus is on proving the core concept: a gravity-driven, multi-vehicle action game set across two linked worlds.

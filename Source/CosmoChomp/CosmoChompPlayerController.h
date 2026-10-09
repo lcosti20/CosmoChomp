@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
-#include "BurnPhasePlayerController.generated.h"
+#include "CosmoChompPlayerController.generated.h"
 
 class UInputMappingContext;
 class UUserWidget;
@@ -14,7 +14,7 @@ class UUserWidget;
  *  Manages input mappings
  */
 UCLASS(abstract)
-class ABurnPhasePlayerController : public APlayerController
+class ACosmoChompPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	

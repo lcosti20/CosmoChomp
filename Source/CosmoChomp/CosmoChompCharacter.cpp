@@ -1,4 +1,4 @@
-#include "BurnPhaseCharacter.h"
+#include "CosmoChompCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -9,14 +9,14 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
-#include "BurnPhase.h"
+#include "CosmoChomp.h"
 #include "Engine/World.h"
 #include "Engine/EngineTypes.h"
 #include "CollisionQueryParams.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlanetaryGravityComponent.h"
 
-ABurnPhaseCharacter::ABurnPhaseCharacter()
+ACosmoChompCharacter::ACosmoChompCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -34,7 +34,7 @@ ABurnPhaseCharacter::ABurnPhaseCharacter()
 	InitFollowCamera();
 }
 
-void ABurnPhaseCharacter::InitMovement()
+void ACosmoChompCharacter::InitMovement()
 {
 	// Movement settings
 	UCharacterMovementComponent* MovementComp = GetCharacterMovement();
@@ -50,7 +50,7 @@ void ABurnPhaseCharacter::InitMovement()
 	MovementComp->bOrientRotationToMovement = false;
 }
 
-void ABurnPhaseCharacter::InitCameraBoom()
+void ACosmoChompCharacter::InitCameraBoom()
 {
 	// Camera Boom (Spring Arm)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -64,7 +64,7 @@ void ABurnPhaseCharacter::InitCameraBoom()
 	CameraBoom->bInheritRoll = true;
 }
 
-void ABurnPhaseCharacter::InitFollowCamera()
+void ACosmoChompCharacter::InitFollowCamera()
 {
 	// Follow Camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
@@ -72,27 +72,27 @@ void ABurnPhaseCharacter::InitFollowCamera()
 	FollowCamera->bUsePawnControlRotation = false;
 }
 
-void ABurnPhaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void ACosmoChompCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABurnPhaseCharacter::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Look);
 	}
 }
 
-void ABurnPhaseCharacter::Move(const FInputActionValue& Value)
+void ACosmoChompCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
 // Used in blueprints
-void ABurnPhaseCharacter::DoMove(float Right, float Forward)
+void ACosmoChompCharacter::DoMove(float Right, float Forward)
 {
 	AController* LocalController = GetController();
 	if (!LocalController || !PlanetaryGravity)
@@ -116,34 +116,34 @@ void ABurnPhaseCharacter::DoMove(float Right, float Forward)
 	AddMovementInput(RightDir, Right);
 }
 
-void ABurnPhaseCharacter::Look(const FInputActionValue& Value)
+void ACosmoChompCharacter::Look(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
 // Used in blueprints
-void ABurnPhaseCharacter::DoLook(float Yaw, float Pitch)
+void ACosmoChompCharacter::DoLook(float Yaw, float Pitch)
 {
 	LookYaw += Yaw * LookYawRate;
 	LookPitch = FMath::Clamp(LookPitch + Pitch * LookPitchRate, -MaxLookPitch, MaxLookPitch);
 }
 
 // Used in blueprints
-void ABurnPhaseCharacter::DoJumpStart()
+void ACosmoChompCharacter::DoJumpStart()
 {
 	// signal the character to jump
 	Jump();
 }
 
 // Used in blueprints
-void ABurnPhaseCharacter::DoJumpEnd()
+void ACosmoChompCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
 }
 
-void ABurnPhaseCharacter::Tick(float DeltaTime)
+void ACosmoChompCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 

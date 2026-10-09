@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class BurnPhase : ModuleRules
+public class CosmoChomp : ModuleRules
 {
-	public BurnPhase(ReadOnlyTargetRules Target) : base(Target)
+	public CosmoChomp(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
@@ -24,20 +24,20 @@ public class BurnPhase : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
-			"BurnPhase",
-			"BurnPhase/Variant_Platforming",
-			"BurnPhase/Variant_Platforming/Animation",
-			"BurnPhase/Variant_Combat",
-			"BurnPhase/Variant_Combat/AI",
-			"BurnPhase/Variant_Combat/Animation",
-			"BurnPhase/Variant_Combat/Gameplay",
-			"BurnPhase/Variant_Combat/Interfaces",
-			"BurnPhase/Variant_Combat/UI",
-			"BurnPhase/Variant_SideScrolling",
-			"BurnPhase/Variant_SideScrolling/AI",
-			"BurnPhase/Variant_SideScrolling/Gameplay",
-			"BurnPhase/Variant_SideScrolling/Interfaces",
-			"BurnPhase/Variant_SideScrolling/UI"
+			"CosmoChomp",
+			"CosmoChomp/Variant_Platforming",
+			"CosmoChomp/Variant_Platforming/Animation",
+			"CosmoChomp/Variant_Combat",
+			"CosmoChomp/Variant_Combat/AI",
+			"CosmoChomp/Variant_Combat/Animation",
+			"CosmoChomp/Variant_Combat/Gameplay",
+			"CosmoChomp/Variant_Combat/Interfaces",
+			"CosmoChomp/Variant_Combat/UI",
+			"CosmoChomp/Variant_SideScrolling",
+			"CosmoChomp/Variant_SideScrolling/AI",
+			"CosmoChomp/Variant_SideScrolling/Gameplay",
+			"CosmoChomp/Variant_SideScrolling/Interfaces",
+			"CosmoChomp/Variant_SideScrolling/UI"
 		});
 
 		// Uncomment if you are using Slate UI

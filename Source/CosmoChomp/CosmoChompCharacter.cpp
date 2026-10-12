@@ -65,7 +65,8 @@ void ACosmoChompCharacter::InitGameplayComponents()
 
 	// Imported by Tools/AssetPipeline
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> Astronaut(TEXT("/Game/Meshes/Astronaut/SK_Astronaut"));
-	static ConstructorHelpers::FObjectFinder<UAnimationAsset> AstronautIdle(TEXT("/Game/Meshes/Astronaut/SK_Astronaut_Anim"));
+	static ConstructorHelpers::FObjectFinder<UAnimationAsset> AstronautIdle(TEXT("/Game/Meshes/Astronaut/SK_AstronautIdle"));
+	static ConstructorHelpers::FObjectFinder<UAnimationAsset> AstronautWalk(TEXT("/Game/Meshes/Astronaut/SK_AstronautWalk"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Gun(TEXT("/Game/Meshes/RayGun/SM_RayGun"));
 	static ConstructorHelpers::FObjectFinder<UInputAction> Fire(TEXT("/Game/Input/Actions/IA_Fire"));
 	static ConstructorHelpers::FObjectFinder<USoundBase> Footsteps(TEXT("/Game/Audio/S_Footsteps"));
@@ -74,7 +75,8 @@ void ACosmoChompCharacter::InitGameplayComponents()
 	static ConstructorHelpers::FObjectFinder<USoundBase> Shoot(TEXT("/Game/Audio/S_GunShoot"));
 
 	AstronautMesh = Astronaut.Object;
-	AstronautAnimation = AstronautIdle.Object;
+	IdleAnimation = AstronautIdle.Object;
+	WalkAnimation = AstronautWalk.Object;
 	RayGunMesh->SetStaticMesh(Gun.Object);
 	FireAction = Fire.Object;
 	FootstepAudio->SetSound(Footsteps.Object);
@@ -99,10 +101,7 @@ void ACosmoChompCharacter::ApplyAstronautMesh()
 		// The astronaut has its own skeleton, so it plays its own animation instead of the mannequin anim blueprint
 		GetMesh()->SetSkeletalMeshAsset(AstronautMesh);
 		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		if (AstronautAnimation)
-		{
-			GetMesh()->PlayAnimation(AstronautAnimation, true);
-		}
+		PlayAstronautAnimation(IdleAnimation);
 		CosmoChompMeshFitting::FitSkeletalMeshToCapsule(GetMesh(), GetCapsuleComponent(), AstronautHeight, AstronautYaw);
 	}
 
@@ -318,16 +317,28 @@ void ACosmoChompCharacter::UpdateMeshEffects(float DeltaTime)
 	const bool bBlinkHidden = InvulnerabilityRemaining > 0.0f && FMath::Fmod(InvulnerabilityRemaining, 0.2f) < 0.1f;
 	MeshComp->SetVisibility(!bBlinkHidden, true);
 
-	// Bouncy low-gravity hop, scaled by speed
+	// Step while moving along the ground, idle otherwise; the walk speeds up with movement speed
 	const UCharacterMovementComponent* MovementComp = GetCharacterMovement();
-	const float SpeedAlpha = MovementComp->IsMovingOnGround()
-		? FMath::Clamp(FVector::VectorPlaneProject(GetVelocity(), CurrentSurfaceUp).Size() / MovementComp->MaxWalkSpeed, 0.0f, 1.0f)
-		: 0.0f;
-	WalkCycle += DeltaTime * 11.0f * SpeedAlpha;
+	const float GroundSpeed = FVector::VectorPlaneProject(GetVelocity(), CurrentSurfaceUp).Size();
+	if (MovementComp->IsMovingOnGround() && GroundSpeed > WalkSpeedThreshold)
+	{
+		PlayAstronautAnimation(WalkAnimation);
+		MeshComp->SetPlayRate(WalkPlayRate * FMath::Clamp(GroundSpeed / MovementComp->MaxWalkSpeed, 0.4f, 1.0f));
+	}
+	else
+	{
+		PlayAstronautAnimation(IdleAnimation);
+		MeshComp->SetPlayRate(1.0f);
+	}
+}
 
-	const float Hop = FMath::Abs(FMath::Sin(WalkCycle)) * WalkBobHeight * SpeedAlpha;
-	const float Sway = FMath::Sin(WalkCycle) * 6.0f * SpeedAlpha;
-	MeshComp->SetRelativeLocationAndRotation(MeshBaseLocation + FVector(0.0f, 0.0f, Hop), MeshBaseRotation + FRotator(0.0f, 0.0f, Sway));
+void ACosmoChompCharacter::PlayAstronautAnimation(UAnimationAsset* Animation)
+{
+	if (Animation && Animation != CurrentAnimation)
+	{
+		CurrentAnimation = Animation;
+		GetMesh()->PlayAnimation(Animation, true);
+	}
 }
 
 void ACosmoChompCharacter::UpdateFootsteps()

@@ -98,6 +98,12 @@ void ACosmoChompGameMode::SetupRound()
 	FTimerHandle AlienTimer;
 	GetWorldTimerManager().SetTimer(AlienTimer, this, &ACosmoChompGameMode::SpawnAliens, FMath::Max(AlienSpawnDelay, 0.01f), false);
 
+	if (bRayGunAtStart)
+	{
+		SpawnRayGunNearRocket();
+	}
+
+	// Skipped if the gun by the rocket is still lying there; collecting it schedules the next one
 	FTimerHandle RayGunTimer;
 	GetWorldTimerManager().SetTimer(RayGunTimer, this, &ACosmoChompGameMode::SpawnRayGun, FMath::Max(RayGunRespawnDelay, 0.01f), false);
 
@@ -210,16 +216,50 @@ void ACosmoChompGameMode::SpawnAlien()
 
 void ACosmoChompGameMode::SpawnRayGun()
 {
-	if (bRoundOver || !Maze || !RayGunClass)
+	if (bRoundOver || !Maze || !RayGunClass || IsValid(ActiveRayGun))
 	{
 		return;
 	}
 
-	ARayGunPickup* RayGun = SpawnOnTile<ARayGunPickup>(RayGunClass, PickDistantTile(GetPlayerTile(), 0.35f), 90.0f);
+	const int32 Tile = PickDistantTile(GetPlayerTile(), 0.35f);
+	const FVector Up = Maze->GetTileUp(Tile);
+	FVector Tangent, Bitangent;
+	Up.FindBestAxisVectors(Tangent, Bitangent);
+
+	if (PlaceRayGun(Maze->GetTileLocation(Tile, 90.0f), Tangent))
+	{
+		ShowBanner(TEXT("A ray gun has appeared - follow the pink beacon!"), 4.0f);
+	}
+}
+
+void ACosmoChompGameMode::SpawnRayGunNearRocket()
+{
+	if (!Maze || !RayGunClass)
+	{
+		return;
+	}
+
+	// To the side of the rocket, within sight of the player (who stands toward the first neighbor, facing the rocket)
+	const TArray<int32> Neighbors = Maze->GetNeighbors(StartTile);
+	const FVector TileUp = Maze->GetTileUp(StartTile);
+	const FVector Outward = Neighbors.IsEmpty() ? FVector::ForwardVector : FVector::VectorPlaneProject(Maze->GetTileUp(Neighbors[0]) - TileUp, TileUp).GetSafeNormal();
+	const FVector Side = FVector::CrossProduct(TileUp, Outward).GetSafeNormal();
+
+	const FVector Location = Maze->ProjectToSurface(Maze->GetTileLocation(StartTile) + (Side * 0.75f + Outward * 0.25f) * Maze->GetTileSpacing() * 0.42f, 90.0f);
+	PlaceRayGun(Location, Side);
+}
+
+ARayGunPickup* ACosmoChompGameMode::PlaceRayGun(const FVector& Location, const FVector& Forward)
+{
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	ARayGunPickup* RayGun = GetWorld()->SpawnActor<ARayGunPickup>(RayGunClass, Location, Maze->GetSurfaceRotation(Location, Forward), SpawnParams);
 	if (RayGun)
 	{
 		RayGun->OnCollected.AddDynamic(this, &ACosmoChompGameMode::OnRayGunCollected);
+		ActiveRayGun = RayGun;
 	}
+	return RayGun;
 }
 
 void ACosmoChompGameMode::OnAlienKilled(AAlienMonster* Alien)
@@ -230,6 +270,8 @@ void ACosmoChompGameMode::OnAlienKilled(AAlienMonster* Alien)
 
 void ACosmoChompGameMode::OnRayGunCollected()
 {
+	ActiveRayGun = nullptr;
+
 	// The next gun shows up a while after this one runs out
 	const float Duration = RayGunClass ? RayGunClass->GetDefaultObject<ARayGunPickup>()->Duration : 0.0f;
 

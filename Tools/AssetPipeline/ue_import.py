@@ -7,14 +7,14 @@ renamed (the C++ classes reference these paths, which keeps them loaded). Existi
 kept as they are; delete one in the editor to have it rebuilt.
 
 Resulting layout (the C++ classes load these paths as defaults):
-  /Game/Meshes/Astronaut   SK_Astronaut, SK_Astronaut_Anim (idle), M_Astronaut, M_Astronaut_Visor
+  /Game/Meshes/Astronaut   SK_Astronaut, SK_AstronautIdle, SK_AstronautWalk, M_Astronaut, M_Astronaut_Visor
   /Game/Meshes/Alien       SK_Alien, SK_AlienArmature_<Take> animations, M_Alien
   /Game/Meshes/Rocket      SM_Rocket
   /Game/Meshes/RayGun      SM_RayGun, M_RayGun
   /Game/Meshes/Walls       SM_Wall_01 .. SM_Wall_06, M_Wall_01 .. M_Wall_06
-  /Game/Materials          M_Glow (unlit emissive, "Color" + "Intensity" parameters)
+  /Game/Materials          M_Glow (unlit emissive, "Color" + "Intensity" parameters), M_SpaceSky (starfield)
   /Game/Audio              S_* sound waves
-  /Game/Input/Actions      IA_Fire (mapped in IMC_Default)
+  /Game/Input/Actions      IA_Fire, IA_Pause (mapped in IMC_Default)
 """
 import os
 
@@ -226,6 +226,34 @@ def set_usage(material, skeletal=False, instanced=False):
     return material
 
 
+def make_space_sky_material():
+    """Black, unlit starfield for the inside of a big sky sphere."""
+    if existing_material("/Game/Materials", "M_SpaceSky"):
+        return
+    material = new_material("/Game/Materials", "M_SpaceSky")
+    material.set_editor_property("shading_model", unreal.MaterialShadingModel.MSM_UNLIT)
+    material.set_editor_property("two_sided", True)
+
+    coords = mel.create_material_expression(material, unreal.MaterialExpressionTextureCoordinate, -1100, 0)
+    coords.set_editor_property("u_tiling", 6.0)
+    coords.set_editor_property("v_tiling", 3.0)
+    stars = texture_node(material, unreal.load_asset("/Engine/EngineSky/T_Sky_Stars"), "color", -850, 0)
+    mel.connect_material_expressions(coords, "", stars, "UVs")
+
+    # Squaring the texture keeps the bright stars and drops the faint haze to black
+    square = mel.create_material_expression(material, unreal.MaterialExpressionMultiply, -550, 0)
+    mel.connect_material_expressions(stars, "RGB", square, "A")
+    mel.connect_material_expressions(stars, "RGB", square, "B")
+    brightness = mel.create_material_expression(material, unreal.MaterialExpressionScalarParameter, -550, 200)
+    brightness.set_editor_property("parameter_name", "Brightness")
+    brightness.set_editor_property("default_value", 4.0)
+    mult = mel.create_material_expression(material, unreal.MaterialExpressionMultiply, -300, 0)
+    mel.connect_material_expressions(square, "", mult, "A")
+    mel.connect_material_expressions(brightness, "", mult, "B")
+    mel.connect_material_property(mult, "", unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+    mel.recompile_material(material)
+
+
 def assign_material(mesh, material, slot_filter=None):
     """Assigns material to every slot, or only slots whose name contains slot_filter."""
     if isinstance(mesh, unreal.SkeletalMesh):
@@ -338,27 +366,25 @@ def import_sounds():
         log(f"sound {sound.get_name()} ({sound.get_editor_property('duration'):.2f}s)")
 
 
-def create_fire_input():
+def create_input_action(name, keys, trigger_when_paused=False):
     dest = "/Game/Input/Actions"
-    path = f"{dest}/IA_Fire"
+    path = f"{dest}/{name}"
     if eal.does_asset_exist(path):
         action = unreal.load_asset(path)
     else:
-        action = asset_tools.create_asset("IA_Fire", dest, unreal.InputAction, unreal.InputAction_Factory())
+        action = asset_tools.create_asset(name, dest, unreal.InputAction, unreal.InputAction_Factory())
     action.set_editor_property("value_type", unreal.InputActionValueType.BOOLEAN)
+    action.set_editor_property("trigger_when_paused", trigger_when_paused)
 
     imc = unreal.load_asset("/Game/Input/IMC_Default")
     imc.unmap_all_keys_from_action(action)
-    for key_name in ("LeftMouseButton", "Gamepad_RightTrigger", "F"):
+    for key_name in keys:
         key = unreal.Key()
         key.import_text(f'(KeyName="{key_name}")')
         imc.map_key(action, key)
     # MapKey doesn't mark the package dirty, so force the saves
     eal.save_loaded_asset(action, False)
     eal.save_loaded_asset(imc, False)
-    mapped = [str(m.get_editor_property("key").get_editor_property("key_name")) for m in imc.get_editor_property("default_key_mappings").get_editor_property("mappings")
-              if m.get_editor_property("action") == action]
-    log(f"IA_Fire mapped to {mapped}")
 
 
 def main():
@@ -372,8 +398,11 @@ def main():
     import_astronaut()
     import_alien()
     make_glow_material()
+    make_space_sky_material()
     import_sounds()
-    create_fire_input()
+    create_input_action("IA_Fire", ("LeftMouseButton", "Gamepad_RightTrigger", "F"))
+    # Escape stops Play-In-Editor, so use P there; Escape works in standalone and packaged builds
+    create_input_action("IA_Pause", ("Escape", "P", "Gamepad_Special_Right"), trigger_when_paused=True)
     for folder in ("/Game/Meshes", "/Game/Materials", "/Game/Audio"):
         eal.save_directory(folder, only_if_is_dirty=False, recursive=True)
     log("done")

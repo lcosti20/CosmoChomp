@@ -7,6 +7,7 @@
 class USphereComponent;
 class UStaticMeshComponent;
 class URotatingMovementComponent;
+class UMaterialInterface;
 class USoundBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRayGunCollected);
@@ -34,6 +35,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray Gun")
 	TObjectPtr<USoundBase> PickupSound;
 
+	/** Glowing column above the gun so it can be spotted over the maze walls */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray Gun|Beacon")
+	float BeaconHeight = 1600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray Gun|Beacon")
+	float BeaconWidth = 14.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray Gun|Beacon")
+	FLinearColor BeaconColor = FLinearColor(1.0f, 0.1f, 0.6f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ray Gun|Beacon")
+	TObjectPtr<UMaterialInterface> BeaconMaterial;
+
 	UPROPERTY(BlueprintAssignable, Category = "Ray Gun")
 	FOnRayGunCollected OnCollected;
 
@@ -51,6 +65,12 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category = "Ray Gun")
 	TObjectPtr<URotatingMovementComponent> Spinner;
+
+	UPROPERTY(VisibleAnywhere, Category = "Ray Gun|Beacon")
+	TObjectPtr<UStaticMeshComponent> Beacon;
+
+	UPROPERTY(VisibleAnywhere, Category = "Ray Gun|Beacon")
+	TObjectPtr<class UPointLightComponent> Glow;
 
 	UFUNCTION()
 	void OnPickupOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

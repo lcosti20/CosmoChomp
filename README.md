@@ -92,6 +92,7 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 - Deposit orbs: walk up to the rocket; everything you carry is loaded as fuel
 - Fight back: when you're holding the ray gun, fire with left mouse / F / right trigger
 - Escape: gather enough energy and return to your spaceship to leave the planet
+- Pause menu: Escape / P / gamepad Start (in Play-In-Editor, Escape stops the session, so use P)
 
 ## How It Works
 
@@ -101,7 +102,7 @@ A round runs in any level that contains a `HexMaze` actor and a `Planet`-tagged 
 2. **Rocket** (`ACosmoRocket`): lands on the tile nearest the PlayerStart; the player spawns beside it. Standing near it deposits carried orbs. Once `OrbsRequiredFraction` of the maze's orbs are delivered, the player boards and it launches.
 3. **Energy orbs** (`AEnergyOrb`): one per tile. Getting hurt drops every carried orb around you (briefly uncollectable), so bank them often.
 4. **Aliens** (`AAlienMonster`): appear after a short grace period, far from the player. They navigate the maze's tile graph (navmesh doesn't work on a sphere): wander, chase when you're within a few tiles, and claw at close range. Three hits and the round restarts.
-5. **Ray gun** (`ARayGunPickup`): spawns on a random distant tile. Picking it up lets you shoot for 10 seconds, and aliens flee from you while you're armed. Shots follow the curve of the planet. A new gun appears some time after the last runs out.
+5. **Ray gun** (`ARayGunPickup`): one starts beside the rocket (toggle with `bRayGunAtStart` on the game mode), and later ones spawn on random distant tiles, marked by a tall pink beacon. There's at most one in the maze at a time. Picking it up lets you shoot for 10 seconds, and aliens flee from you while you're armed. Shots follow the curve of the planet. A new gun appears some time after the last runs out.
 
 Tuning lives on the `HexMaze` actor (tile size, braiding, wall sizes) and on the game mode's **Cosmo Chomp** category (orb requirement, alien count, spawn and respawn delays).
 
@@ -114,7 +115,7 @@ pip install trimesh pycollada
 python Tools/AssetPipeline/build_assets.py
 ```
 
-This needs ffmpeg on the `PATH`, Blender 5.x and UE 5.8 (override their paths with the `BLENDER_EXE` / `UE_EDITOR_CMD` environment variables). It converts the MP3 sounds to WAV, converts the ray gun from Collada, splits the wall model into its six pieces with bottom-centered pivots (`SM_Wall_01`..`06`), then imports everything and builds materials. Re-running updates assets in place; delete a material in the editor if you want it rebuilt. `ue_create_level.py` is the script that created `Lvl_CosmoChomp`.
+This needs ffmpeg on the `PATH`, Blender 5.x and UE 5.8 (override their paths with the `BLENDER_EXE` / `UE_EDITOR_CMD` environment variables). It converts the MP3 sounds to WAV, converts the ray gun from Collada, fixes the astronaut's mirrored mesh and cuts its single animation into `Idle` (frames 1–41) and `Walk` (61–121) takes, splits the wall model into its six pieces with bottom-centered pivots (`SM_Wall_01`..`06`), then imports everything and builds materials. Re-running updates assets in place; delete a material in the editor if you want it rebuilt. `ue_create_level.py` is the script that created `Lvl_CosmoChomp`.
 
 ## Credits
 

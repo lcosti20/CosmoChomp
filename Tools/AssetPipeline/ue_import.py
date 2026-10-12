@@ -379,9 +379,15 @@ def create_input_action(name, keys, trigger_when_paused=False):
     imc = unreal.load_asset("/Game/Input/IMC_Default")
     imc.unmap_all_keys_from_action(action)
     for key_name in keys:
+        # FKey's text import takes the bare key name, so set the name directly
         key = unreal.Key()
-        key.import_text(f'(KeyName="{key_name}")')
+        key.set_editor_property("key_name", key_name)
         imc.map_key(action, key)
+    mapped = [str(m.get_editor_property("key").get_editor_property("key_name"))
+              for m in imc.get_editor_property("default_key_mappings").get_editor_property("mappings")
+              if m.get_editor_property("action") == action]
+    if sorted(mapped) != sorted(keys):
+        raise RuntimeError(f"{name}: expected keys {keys}, got {mapped}")
     # MapKey doesn't mark the package dirty, so force the saves
     eal.save_loaded_asset(action, False)
     eal.save_loaded_asset(imc, False)

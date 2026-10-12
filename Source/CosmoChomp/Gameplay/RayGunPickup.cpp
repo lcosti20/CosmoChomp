@@ -108,6 +108,15 @@ ARayGunBeam::ARayGunBeam()
 	Segments->SetCastShadow(false);
 	RootComponent = Segments;
 
+	MuzzleFlash = CreateDefaultSubobject<UPointLightComponent>(TEXT("MuzzleFlash"));
+	ImpactFlash = CreateDefaultSubobject<UPointLightComponent>(TEXT("ImpactFlash"));
+	for (UPointLightComponent* Flash : { MuzzleFlash.Get(), ImpactFlash.Get() })
+	{
+		Flash->SetupAttachment(Segments);
+		Flash->SetAttenuationRadius(500.0f);
+		Flash->SetCastShadows(false);
+	}
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> Glow(TEXT("/Game/Materials/M_Glow"));
 	Segments->SetStaticMesh(Cylinder.Object);
@@ -122,6 +131,17 @@ void ARayGunBeam::SetPoints(const TArray<FVector>& Points, const FLinearColor& C
 		Material->SetVectorParameterValue(TEXT("Color"), Color);
 		Material->SetScalarParameterValue(TEXT("Intensity"), 25.0f);
 		Segments->SetMaterial(0, Material);
+	}
+
+	if (Points.Num() > 0)
+	{
+		MuzzleFlash->SetWorldLocation(Points[0]);
+		ImpactFlash->SetWorldLocation(Points.Last());
+	}
+	for (UPointLightComponent* Flash : { MuzzleFlash.Get(), ImpactFlash.Get() })
+	{
+		Flash->SetLightColor(Color);
+		Flash->SetIntensity(FlashIntensity);
 	}
 
 	// Engine cylinder: 100 units tall along Z, 100 across, pivot at its center
@@ -153,6 +173,8 @@ void ARayGunBeam::Tick(float DeltaTime)
 		Destroy();
 		return;
 	}
+	MuzzleFlash->SetIntensity(FlashIntensity * Alpha);
+	ImpactFlash->SetIntensity(FlashIntensity * Alpha);
 	for (int32 Index = 0; Index < Segments->GetInstanceCount(); ++Index)
 	{
 		FTransform Transform;

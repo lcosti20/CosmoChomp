@@ -25,5 +25,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "HUD")
 	FLinearColor RayGunColor = FLinearColor(1.0f, 0.2f, 0.65f);
 
+	/** The ray gun timer blinks once fewer than this many seconds are left */
+	UPROPERTY(EditAnywhere, Category = "HUD")
+	float RayGunWarningTime = 3.0f;
+
+	void DrawRayGunTimer(const class ACosmoChompCharacter* Player, class UFont* Font, float Scale);
 	void DrawBar(float X, float Y, float Width, float Height, float Fill, const FLinearColor& Color);
 };

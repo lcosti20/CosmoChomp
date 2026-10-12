@@ -93,14 +93,24 @@ public:
 	void SetPoints(const TArray<FVector>& Points, const FLinearColor& Color);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Beam")
-	float BeamWidth = 10.0f;
+	float BeamWidth = 16.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Beam")
-	float Lifetime = 0.15f;
+	float Lifetime = 0.3f;
+
+	/** Peak brightness of the flashes at the muzzle and where the beam stops */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Beam")
+	float FlashIntensity = 20000.0f;
 
 protected:
 	UPROPERTY(VisibleAnywhere, Category = "Beam")
 	TObjectPtr<class UInstancedStaticMeshComponent> Segments;
+
+	UPROPERTY(VisibleAnywhere, Category = "Beam")
+	TObjectPtr<class UPointLightComponent> MuzzleFlash;
+
+	UPROPERTY(VisibleAnywhere, Category = "Beam")
+	TObjectPtr<class UPointLightComponent> ImpactFlash;
 
 	UPROPERTY(EditAnywhere, Category = "Beam")
 	TObjectPtr<class UMaterialInterface> BeamMaterial;

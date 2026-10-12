@@ -88,6 +88,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Cosmo Chomp")
 	float GetRayGunTimeRemaining() const { return RayGunTimeRemaining; }
 
+	/** Full charge of the current ray gun, for the HUD's countdown bar */
+	UFUNCTION(BlueprintPure, Category = "Cosmo Chomp")
+	float GetRayGunDuration() const { return RayGunDuration; }
+
 	UFUNCTION(BlueprintCallable, Category = "Cosmo Chomp")
 	void AddOrbs(int32 Count);
 
@@ -157,6 +161,7 @@ protected:
 	int32 Health = 3;
 	int32 CarriedOrbs = 0;
 	float RayGunTimeRemaining = 0.0f;
+	float RayGunDuration = 0.0f;
 	float InvulnerabilityRemaining = 0.0f;
 	float FireCooldownRemaining = 0.0f;
 	bool bDead = false;

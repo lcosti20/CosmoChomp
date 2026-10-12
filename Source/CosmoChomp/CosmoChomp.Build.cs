@@ -12,6 +12,7 @@ public class CosmoChomp : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"RenderCore",
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",

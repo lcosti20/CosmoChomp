@@ -92,6 +92,7 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 - Deposit orbs: walk up to the rocket; everything you carry is loaded as fuel
 - Fight back: when you're holding the ray gun, fire a laser with left mouse / F / right trigger; a countdown bar at the bottom of the screen shows how long the gun lasts
 - Escape: gather enough energy and return to your spaceship to leave the planet
+- Mini map (top right): centered on you and turned to face where the camera looks. Lines are tiles and walls, dots are energy orbs, the red triangle is the rocket, the green sideways triangle is a ray gun, and yellow squares are aliens. The rocket and ray gun stay on the rim when out of range, pointing the way. It uses an azimuthal equidistant projection, so distance from the center is true distance over the planet; zoom with `MiniMapRangeDegrees` on `ACosmoChompHUD` (180 shows the whole planet)
 - Pause menu: Escape / P / gamepad Start. In Play-In-Editor, this project moves "Stop" to Shift+Escape (`Config/DefaultEditorSettings.ini`) so Escape reaches the game
 
 ## How It Works

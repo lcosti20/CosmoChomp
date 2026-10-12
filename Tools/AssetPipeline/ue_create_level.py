@@ -1,6 +1,6 @@
 """
 Creates /Game/Maps/Lvl_CosmoChomp: the planet, lighting, a PlayerStart and the HexMaze actor.
-Everything else (maze walls, rocket, orbs, aliens, ray gun) is spawned by ACosmoChompGameMode at runtime.
+Re-running it requires deleting the level first. Everything else (maze walls, rocket, orbs, aliens, ray gun) is spawned by ACosmoChompGameMode at runtime.
 
 Needs the full editor (level editing subsystems aren't available in commandlets) and the C++ module built:
     UnrealEditor.exe CosmoChomp.uproject -ExecutePythonScript=<this file> -unattended -nullrhi
@@ -9,6 +9,7 @@ import unreal
 
 LEVEL_PATH = "/Game/Maps/Lvl_CosmoChomp"
 PLANET_RADIUS = 3000.0
+SKY_RADIUS = 200000.0
 
 level_subsystem = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
 actor_subsystem = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
@@ -53,19 +54,28 @@ def main():
     # The player lands on the tile nearest to this
     spawn(unreal.PlayerStart, (0, 0, PLANET_RADIUS + 200), label="PlayerStart")
 
-    # Lighting: a sun plus sky ambient so the night side of the planet stays readable
+    # Lighting: a sun, plus ambient from a fixed cubemap so the night side of the planet stays
+    # readable (capturing the black space sky would leave it pitch dark)
     sun = spawn(unreal.DirectionalLight, (0, 0, PLANET_RADIUS * 2), (0, -50, 30), label="Sun")
     sun_component = sun.get_component_by_class(unreal.DirectionalLightComponent)
-    sun_component.set_editor_property("atmosphere_sun_light", True)
     sun_component.set_editor_property("intensity", 8.0)
-
-    spawn(unreal.SkyAtmosphere, label="SkyAtmosphere")
 
     sky_light = spawn(unreal.SkyLight, (0, 0, PLANET_RADIUS * 2), label="SkyLight")
     sky_component = sky_light.get_component_by_class(unreal.SkyLightComponent)
-    sky_component.set_editor_property("real_time_capture", True)
-    sky_component.set_editor_property("intensity", 2.0)
     sky_component.set_editor_property("mobility", unreal.ComponentMobility.MOVABLE)
+    sky_component.set_editor_property("source_type", unreal.SkyLightSourceType.SLS_SPECIFIED_CUBEMAP)
+    sky_component.set_editor_property("cubemap", unreal.load_asset("/Engine/MapTemplates/Sky/DaylightAmbientCubemap"))
+    sky_component.set_editor_property("intensity", 1.0)
+
+    # Space: a huge sphere with a black, starry, unlit material (no atmosphere)
+    sky_sphere = spawn(unreal.StaticMeshActor, label="SpaceSky")
+    sky_mesh = sky_sphere.static_mesh_component
+    sky_mesh.set_static_mesh(unreal.load_asset("/Engine/EngineSky/SM_SkySphere"))
+    sky_mesh.set_material(0, unreal.load_asset("/Game/Materials/M_SpaceSky"))
+    sky_mesh.set_collision_enabled(unreal.CollisionEnabled.NO_COLLISION)
+    sky_mesh.set_editor_property("cast_shadow", False)
+    sky_radius = sky_mesh.static_mesh.get_bounds().sphere_radius
+    sky_sphere.set_actor_scale3d(unreal.Vector(1, 1, 1) * (SKY_RADIUS / max(sky_radius, 1.0)))
 
     post = spawn(unreal.PostProcessVolume, label="PostProcess")
     post.set_editor_property("unbound", True)

@@ -6,7 +6,8 @@ Builds Cosmo Chomp's Unreal assets from the raw files in Assets/.
 Steps:
   1. ffmpeg      Assets/sounds/**/*.mp3      -> Intermediate/AssetStaging/sounds/*.wav (UE can't import MP3)
   2. trimesh     simple-ray-gun model.dae    -> Intermediate/AssetStaging/raygun.glb (Blender 5 has no Collada importer)
-  3. Blender     blender_prep.py             -> splits the wall FBX into pieces, converts rocket + ray gun to FBX
+  3. Blender     blender_prep.py             -> fixes the astronaut + splits its animation, splits the wall FBX
+                                               into pieces, converts rocket + ray gun to FBX
   4. Unreal      ue_import.py (commandlet)   -> imports everything into /Game and builds materials
 
 Requirements: ffmpeg on PATH, Blender 5.x, Unreal Engine 5.8, and `pip install trimesh pycollada`.
@@ -70,9 +71,7 @@ def convert_raygun():
 
 
 def stage_rigged_models():
-    # The rigged FBX files import directly; copy them under the asset names we want in UE
-    shutil.copy(os.path.join(ASSETS_DIR, "models", "cute-astronaut", "source", "Astronaut.fbx"),
-                os.path.join(STAGING_DIR, "SK_Astronaut.fbx"))
+    # The alien imports directly (blender_prep.py writes SK_Astronaut.fbx); copy it under the name we want in UE
     shutil.copy(os.path.join(ASSETS_DIR, "models", "one-eyed-monster-with-animations", "source",
                              "Claymation monster with animations.fbx"),
                 os.path.join(STAGING_DIR, "SK_Alien.fbx"))

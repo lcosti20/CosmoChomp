@@ -80,6 +80,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cosmo Chomp|Rules", meta = (ClampMin = "0"))
 	float RayGunRespawnDelay = 15.0f;
 
+	/** Also place a ray gun beside the rocket at the start of the round (handy for testing) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cosmo Chomp|Rules")
+	bool bRayGunAtStart = true;
+
 	/** Seconds before the level restarts after winning or losing */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Cosmo Chomp|Rules", meta = (ClampMin = "0"))
 	float RestartDelay = 6.0f;
@@ -92,6 +96,10 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<ACosmoRocket> Rocket;
+
+	/** The ray gun currently lying in the maze; there's never more than one */
+	UPROPERTY()
+	TObjectPtr<ARayGunPickup> ActiveRayGun;
 
 	int32 StartTile = INDEX_NONE;
 	bool bRoundReady = false;
@@ -107,6 +115,8 @@ protected:
 	void SpawnAliens();
 	void SpawnAlien();
 	void SpawnRayGun();
+	void SpawnRayGunNearRocket();
+	ARayGunPickup* PlaceRayGun(const FVector& Location, const FVector& Forward);
 	void ShowBanner(const FString& Text, float Duration);
 	void EndRound(bool bEscaped);
 	void RestartRound();

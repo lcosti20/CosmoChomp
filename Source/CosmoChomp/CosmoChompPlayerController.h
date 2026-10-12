@@ -7,7 +7,9 @@
 #include "CosmoChompPlayerController.generated.h"
 
 class UInputMappingContext;
+class UInputAction;
 class UUserWidget;
+class UCosmoChompPauseMenu;
 
 /**
  *  Basic PlayerController class for a third person game
@@ -17,8 +19,36 @@ UCLASS(abstract)
 class ACosmoChompPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+
+	ACosmoChompPlayerController();
+
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void TogglePauseMenu();
+
+	/** Pauses the game and shows the pause menu */
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void OpenPauseMenu();
+
+	/** Hides the pause menu and resumes the game */
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void ClosePauseMenu();
+
+	UFUNCTION(BlueprintCallable, Category = "Pause Menu")
+	void QuitGame();
+
 protected:
+
+	/** Opens/closes the pause menu; must have "Trigger when Paused" set so it can close it too */
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* PauseAction;
+
+	UPROPERTY(EditAnywhere, Category = "Pause Menu")
+	TSubclassOf<UCosmoChompPauseMenu> PauseMenuClass;
+
+	UPROPERTY()
+	TObjectPtr<UCosmoChompPauseMenu> PauseMenu;
 
 	/** Input Mapping Contexts */
 	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")

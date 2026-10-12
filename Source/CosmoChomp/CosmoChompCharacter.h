@@ -170,7 +170,18 @@ protected:
 	USkeletalMesh* AstronautMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
-	UAnimationAsset* AstronautAnimation;
+	UAnimationAsset* IdleAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
+	UAnimationAsset* WalkAnimation;
+
+	/** Walk animation play rate at full speed; slower movement plays it proportionally slower */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
+	float WalkPlayRate = 1.6f;
+
+	/** Ground speed above which the walk animation plays instead of idle */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
+	float WalkSpeedThreshold = 40.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
 	float AstronautHeight = 175.0f;
@@ -178,10 +189,6 @@ protected:
 	/** The model faces +Y; rotate it to face the actor's +X */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
 	float AstronautYaw = -90.0f;
-
-	/** Height of the procedural hop while walking (the model only has an idle animation) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Astronaut")
-	float WalkBobHeight = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	USoundBase* HurtSound;
@@ -194,13 +201,16 @@ protected:
 
 	FVector MeshBaseLocation = FVector::ZeroVector;
 	FRotator MeshBaseRotation = FRotator::ZeroRotator;
-	float WalkCycle = 0.0f;
+
+	UPROPERTY()
+	UAnimationAsset* CurrentAnimation = nullptr;
 
 	virtual void BeginPlay() override;
 
 	void ApplyAstronautMesh();
 	void UpdateGameplay(float DeltaTime);
 	void UpdateMeshEffects(float DeltaTime);
+	void PlayAstronautAnimation(UAnimationAsset* Animation);
 	void UpdateFootsteps();
 	void Die();
 

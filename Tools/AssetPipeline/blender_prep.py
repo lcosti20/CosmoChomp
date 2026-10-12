@@ -7,6 +7,8 @@ Run headless (build_assets.py does this for you):
 - Splits "wall ready for construction.fbx" into one FBX per wall piece, with each
   piece's pivot at its bottom-center so the maze generator can stretch it along a
   hex edge.
+- Fixes the astronaut (its mesh is mirrored, which turns it inside out) and cuts its single
+  long animation into separate Idle and Walk takes.
 - Converts the rocket (OBJ) and ray gun (glTF, converted from Collada) into FBX with the pivot at the
   bottom-center (rocket) or center (ray gun) and the longest axis of the gun on +X.
 """
@@ -120,6 +122,64 @@ def prep_raygun():
     export_fbx(gun, "SM_RayGun.fbx")
 
 
+# Frame ranges inside the astronaut's one animation. The rest is a crouch and a jump into the sky.
+ASTRONAUT_TAKES = {"Idle": (1, 41), "Walk": (61, 121)}
+
+
+def outward_facing(obj):
+    """True if most face normals point away from the mesh center (i.e. the mesh isn't inside out)."""
+    center = sum((v.co for v in obj.data.vertices), mathutils.Vector()) / max(len(obj.data.vertices), 1)
+    score = sum(p.normal.dot(p.center - center) * p.area for p in obj.data.polygons)
+    return score > 0
+
+
+def prep_astronaut():
+    reset_scene()
+    bpy.ops.import_scene.fbx(filepath=os.path.join(MODELS, "cute-astronaut", "source", "Astronaut.fbx"))
+    for obj in [o for o in bpy.data.objects if o.type in ("LIGHT", "CAMERA")]:
+        bpy.data.objects.remove(obj)
+
+    armature = [o for o in bpy.data.objects if o.type == "ARMATURE"][0]
+    mesh = [o for o in bpy.data.objects if o.type == "MESH"][0]
+    # Naming the armature "Armature" stops Unreal from adding an extra root bone
+    armature.name = "Armature"
+
+    # The source mesh has a negative-determinant scale; bake it into the vertices
+    bpy.ops.object.select_all(action="DESELECT")
+    mesh.select_set(True)
+    bpy.context.view_layer.objects.active = mesh
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    if not outward_facing(mesh):
+        mesh.data.flip_normals()
+    print(f"[prep] astronaut outward facing: {outward_facing(mesh)}")
+
+    # One NLA strip per take; the FBX exporter writes each strip as its own animation
+    source = armature.animation_data.action
+    armature.animation_data.action = None
+    for name, (start, end) in ASTRONAUT_TAKES.items():
+        track = armature.animation_data.nla_tracks.new()
+        track.name = name
+        strip = track.strips.new(name, start, source)
+        strip.action_frame_start = start
+        strip.action_frame_end = end
+
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.export_scene.fbx(
+        filepath=os.path.join(STAGING_DIR, "SK_Astronaut.fbx"),
+        use_selection=True,
+        object_types={"ARMATURE", "MESH"},
+        apply_unit_scale=True,
+        mesh_smooth_type="FACE",
+        add_leaf_bones=False,
+        bake_anim=True,
+        bake_anim_use_nla_strips=True,
+        bake_anim_use_all_actions=False,
+        bake_anim_force_startend_keying=True,
+    )
+    print("[prep] wrote SK_Astronaut.fbx")
+
+
+prep_astronaut()
 prep_walls()
 prep_rocket()
 prep_raygun()

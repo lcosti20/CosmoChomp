@@ -1,5 +1,6 @@
 #include "RayGunPickup.h"
 #include "Components/InstancedStaticMeshComponent.h"
+#include "Components/PointLightComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
@@ -34,9 +35,24 @@ ARayGunPickup::ARayGunPickup()
 	Spinner->RotationRate = FRotator(0.0f, 120.0f, 0.0f);
 	Spinner->SetUpdatedComponent(Pivot);
 
+	Beacon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Beacon"));
+	Beacon->SetupAttachment(PickupSphere);
+	Beacon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Beacon->SetCastShadow(false);
+
+	Glow = CreateDefaultSubobject<UPointLightComponent>(TEXT("Glow"));
+	Glow->SetupAttachment(PickupSphere);
+	Glow->SetIntensity(8000.0f);
+	Glow->SetAttenuationRadius(450.0f);
+	Glow->SetCastShadows(false);
+
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Gun(TEXT("/Game/Meshes/RayGun/SM_RayGun"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> GlowMaterial(TEXT("/Game/Materials/M_Glow"));
 	static ConstructorHelpers::FObjectFinder<USoundBase> Pickup(TEXT("/Game/Audio/S_Whoosh"));
 	GunMesh->SetStaticMesh(Gun.Object);
+	Beacon->SetStaticMesh(Cylinder.Object);
+	BeaconMaterial = GlowMaterial.Object;
 	PickupSound = Pickup.Object;
 }
 
@@ -45,6 +61,19 @@ void ARayGunPickup::BeginPlay()
 	Super::BeginPlay();
 
 	CosmoChompMeshFitting::FitStaticMesh(GunMesh, DisplaySize, false);
+
+	// Engine cylinder: 100 units tall and across, pivot at its center
+	Beacon->SetRelativeLocation(FVector(0.0f, 0.0f, BeaconHeight * 0.5f));
+	Beacon->SetRelativeScale3D(FVector(BeaconWidth / 100.0f, BeaconWidth / 100.0f, BeaconHeight / 100.0f));
+	if (BeaconMaterial)
+	{
+		UMaterialInstanceDynamic* Material = UMaterialInstanceDynamic::Create(BeaconMaterial, this);
+		Material->SetVectorParameterValue(TEXT("Color"), BeaconColor);
+		Material->SetScalarParameterValue(TEXT("Intensity"), 6.0f);
+		Beacon->SetMaterial(0, Material);
+	}
+	Glow->SetLightColor(BeaconColor);
+
 	PickupSphere->OnComponentBeginOverlap.AddDynamic(this, &ARayGunPickup::OnPickupOverlap);
 }
 

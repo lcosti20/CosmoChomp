@@ -372,6 +372,7 @@ int32 ACosmoChompCharacter::TakeAllOrbs()
 void ACosmoChompCharacter::EquipRayGun(float Duration)
 {
 	RayGunTimeRemaining = FMath::Max(RayGunTimeRemaining, Duration);
+	RayGunDuration = RayGunTimeRemaining;
 	RayGunMesh->SetHiddenInGame(false);
 }
 

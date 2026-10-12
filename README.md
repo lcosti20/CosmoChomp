@@ -90,9 +90,9 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 - Movement: analog stick / WASD
 - Collect energy orbs: move through the maze and pick up glowing power cells
 - Deposit orbs: walk up to the rocket; everything you carry is loaded as fuel
-- Fight back: when you're holding the ray gun, fire with left mouse / F / right trigger
+- Fight back: when you're holding the ray gun, fire a laser with left mouse / F / right trigger; a countdown bar at the bottom of the screen shows how long the gun lasts
 - Escape: gather enough energy and return to your spaceship to leave the planet
-- Pause menu: Escape / P / gamepad Start (in Play-In-Editor, Escape stops the session, so use P)
+- Pause menu: Escape / P / gamepad Start. In Play-In-Editor, this project moves "Stop" to Shift+Escape (`Config/DefaultEditorSettings.ini`) so Escape reaches the game
 
 ## How It Works
 

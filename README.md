@@ -55,6 +55,7 @@ CosmoChomp/
 │   └── CosmoChomp/             # Main gameplay implementation
 │       ├── Maze/               # Hex grid on the sphere and maze generation
 │       └── Gameplay/           # Rocket, energy orbs, aliens, ray gun
+├── Docs/                       # Guides, incl. converting the C++ to Blueprints (start at 00-Overview.md)
 ├── Tools/AssetPipeline/        # Scripts that convert and import Assets/ into Content/
 ├── CosmoChomp.uproject         # Unreal Engine project file
 ├── .gitignore                 # Git ignore rules for Unreal projects

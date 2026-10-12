@@ -25,6 +25,8 @@ public class CosmoChomp : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"CosmoChomp",
+			"CosmoChomp/Maze",
+			"CosmoChomp/Gameplay",
 			"CosmoChomp/Variant_Platforming",
 			"CosmoChomp/Variant_Platforming/Animation",
 			"CosmoChomp/Variant_Combat",

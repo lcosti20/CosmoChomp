@@ -15,6 +15,18 @@
 #include "CollisionQueryParams.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlanetaryGravityComponent.h"
+#include "Components/AudioComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/SkeletalMesh.h"
+#include "Engine/StaticMesh.h"
+#include "Animation/AnimationAsset.h"
+#include "GameFramework/DamageType.h"
+#include "Sound/SoundBase.h"
+#include "UObject/ConstructorHelpers.h"
+#include "CosmoChompGameMode.h"
+#include "CosmoChompMeshFitting.h"
+#include "AlienMonster.h"
+#include "RayGunPickup.h"
 
 ACosmoChompCharacter::ACosmoChompCharacter()
 {
@@ -32,6 +44,70 @@ ACosmoChompCharacter::ACosmoChompCharacter()
 	InitMovement();
 	InitCameraBoom();
 	InitFollowCamera();
+	InitGameplayComponents();
+}
+
+void ACosmoChompCharacter::InitGameplayComponents()
+{
+	RayGunHolder = CreateDefaultSubobject<USceneComponent>(TEXT("RayGunHolder"));
+	RayGunHolder->SetupAttachment(RootComponent);
+	RayGunHolder->SetRelativeLocation(FVector(45.0f, 38.0f, -5.0f));
+
+	RayGunMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("RayGunMesh"));
+	RayGunMesh->SetupAttachment(RayGunHolder);
+	RayGunMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RayGunMesh->SetHiddenInGame(true);
+
+	FootstepAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("FootstepAudio"));
+	FootstepAudio->SetupAttachment(RootComponent);
+	FootstepAudio->bAutoActivate = false;
+	FootstepAudio->SetVolumeMultiplier(0.6f);
+
+	// Imported by Tools/AssetPipeline
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> Astronaut(TEXT("/Game/Meshes/Astronaut/SK_Astronaut"));
+	static ConstructorHelpers::FObjectFinder<UAnimationAsset> AstronautIdle(TEXT("/Game/Meshes/Astronaut/SK_Astronaut_Anim"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Gun(TEXT("/Game/Meshes/RayGun/SM_RayGun"));
+	static ConstructorHelpers::FObjectFinder<UInputAction> Fire(TEXT("/Game/Input/Actions/IA_Fire"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Footsteps(TEXT("/Game/Audio/S_Footsteps"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Ough(TEXT("/Game/Audio/S_Ough"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Bang(TEXT("/Game/Audio/S_Bang"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Shoot(TEXT("/Game/Audio/S_GunShoot"));
+
+	AstronautMesh = Astronaut.Object;
+	AstronautAnimation = AstronautIdle.Object;
+	RayGunMesh->SetStaticMesh(Gun.Object);
+	FireAction = Fire.Object;
+	FootstepAudio->SetSound(Footsteps.Object);
+	HurtSound = Ough.Object;
+	DropOrbsSound = Bang.Object;
+	ShootSound = Shoot.Object;
+}
+
+void ACosmoChompCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	Health = MaxHealth;
+	ApplyAstronautMesh();
+	CosmoChompMeshFitting::FitStaticMesh(RayGunMesh, RayGunHeldSize, false);
+}
+
+void ACosmoChompCharacter::ApplyAstronautMesh()
+{
+	if (AstronautMesh)
+	{
+		// The astronaut has its own skeleton, so it plays its own animation instead of the mannequin anim blueprint
+		GetMesh()->SetSkeletalMeshAsset(AstronautMesh);
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+		if (AstronautAnimation)
+		{
+			GetMesh()->PlayAnimation(AstronautAnimation, true);
+		}
+		CosmoChompMeshFitting::FitSkeletalMeshToCapsule(GetMesh(), GetCapsuleComponent(), AstronautHeight, AstronautYaw);
+	}
+
+	MeshBaseLocation = GetMesh()->GetRelativeLocation();
+	MeshBaseRotation = GetMesh()->GetRelativeRotation();
 }
 
 void ACosmoChompCharacter::InitMovement()
@@ -82,6 +158,7 @@ void ACosmoChompCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Look);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Look);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &ACosmoChompCharacter::Fire);
 	}
 }
 
@@ -95,7 +172,7 @@ void ACosmoChompCharacter::Move(const FInputActionValue& Value)
 void ACosmoChompCharacter::DoMove(float Right, float Forward)
 {
 	AController* LocalController = GetController();
-	if (!LocalController || !PlanetaryGravity)
+	if (!LocalController || !PlanetaryGravity || !IsInPlay())
 	{
 		return;
 	}
@@ -132,6 +209,11 @@ void ACosmoChompCharacter::DoLook(float Yaw, float Pitch)
 // Used in blueprints
 void ACosmoChompCharacter::DoJumpStart()
 {
+	if (!IsInPlay())
+	{
+		return;
+	}
+
 	// signal the character to jump
 	Jump();
 }
@@ -146,6 +228,8 @@ void ACosmoChompCharacter::DoJumpEnd()
 void ACosmoChompCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateGameplay(DeltaTime);
 
 	// Update planetary frame
 	// ------------------------------------------------
@@ -197,4 +281,226 @@ void ACosmoChompCharacter::Tick(float DeltaTime)
 	// Non-sweeping: we trust our own surface-normal math and don't want collision
 	// deflection from this — that sweep was the source of the drift.
 	SetActorRotation(NewQuat);
+}
+
+
+// Gameplay
+// ------------------------------------------------
+
+void ACosmoChompCharacter::UpdateGameplay(float DeltaTime)
+{
+	FireCooldownRemaining -= DeltaTime;
+	InvulnerabilityRemaining = FMath::Max(InvulnerabilityRemaining - DeltaTime, 0.0f);
+
+	if (RayGunTimeRemaining > 0.0f)
+	{
+		RayGunTimeRemaining -= DeltaTime;
+		if (RayGunTimeRemaining <= 0.0f)
+		{
+			RayGunTimeRemaining = 0.0f;
+			RayGunMesh->SetHiddenInGame(true);
+		}
+	}
+
+	UpdateMeshEffects(DeltaTime);
+	UpdateFootsteps();
+}
+
+void ACosmoChompCharacter::UpdateMeshEffects(float DeltaTime)
+{
+	if (!IsInPlay())
+	{
+		return;
+	}
+	USkeletalMeshComponent* MeshComp = GetMesh();
+
+	// Blink while invulnerable
+	const bool bBlinkHidden = InvulnerabilityRemaining > 0.0f && FMath::Fmod(InvulnerabilityRemaining, 0.2f) < 0.1f;
+	MeshComp->SetVisibility(!bBlinkHidden, true);
+
+	// Bouncy low-gravity hop, scaled by speed
+	const UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	const float SpeedAlpha = MovementComp->IsMovingOnGround()
+		? FMath::Clamp(FVector::VectorPlaneProject(GetVelocity(), CurrentSurfaceUp).Size() / MovementComp->MaxWalkSpeed, 0.0f, 1.0f)
+		: 0.0f;
+	WalkCycle += DeltaTime * 11.0f * SpeedAlpha;
+
+	const float Hop = FMath::Abs(FMath::Sin(WalkCycle)) * WalkBobHeight * SpeedAlpha;
+	const float Sway = FMath::Sin(WalkCycle) * 6.0f * SpeedAlpha;
+	MeshComp->SetRelativeLocationAndRotation(MeshBaseLocation + FVector(0.0f, 0.0f, Hop), MeshBaseRotation + FRotator(0.0f, 0.0f, Sway));
+}
+
+void ACosmoChompCharacter::UpdateFootsteps()
+{
+	const UCharacterMovementComponent* MovementComp = GetCharacterMovement();
+	const bool bWalking = IsInPlay() && MovementComp->IsMovingOnGround()
+		&& FVector::VectorPlaneProject(GetVelocity(), CurrentSurfaceUp).SizeSquared() > FMath::Square(150.0f);
+
+	if (bWalking && !FootstepAudio->IsPlaying())
+	{
+		FootstepAudio->Play();
+	}
+	else if (!bWalking && FootstepAudio->IsPlaying())
+	{
+		FootstepAudio->Stop();
+	}
+}
+
+void ACosmoChompCharacter::AddOrbs(int32 Count)
+{
+	CarriedOrbs += FMath::Max(Count, 0);
+}
+
+int32 ACosmoChompCharacter::TakeAllOrbs()
+{
+	const int32 Count = CarriedOrbs;
+	CarriedOrbs = 0;
+	return Count;
+}
+
+void ACosmoChompCharacter::EquipRayGun(float Duration)
+{
+	RayGunTimeRemaining = FMath::Max(RayGunTimeRemaining, Duration);
+	RayGunMesh->SetHiddenInGame(false);
+}
+
+float ACosmoChompCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!IsInPlay() || InvulnerabilityRemaining > 0.0f || DamageAmount <= 0.0f)
+	{
+		return 0.0f;
+	}
+
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	Health = FMath::Max(Health - FMath::Max(FMath::RoundToInt(DamageAmount), 1), 0);
+	InvulnerabilityRemaining = InvulnerabilityDuration;
+
+	if (HurtSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HurtSound, GetActorLocation());
+	}
+
+	// Getting hit knocks every carried orb loose
+	if (CarriedOrbs > 0)
+	{
+		if (ACosmoChompGameMode* GameMode = GetWorld()->GetAuthGameMode<ACosmoChompGameMode>())
+		{
+			GameMode->ScatterOrbs(GetActorLocation(), CarriedOrbs);
+		}
+		CarriedOrbs = 0;
+
+		if (DropOrbsSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, DropOrbsSound, GetActorLocation());
+		}
+	}
+
+	if (Health <= 0)
+	{
+		Die();
+	}
+
+	return DamageAmount;
+}
+
+void ACosmoChompCharacter::Die()
+{
+	bDead = true;
+	RayGunTimeRemaining = 0.0f;
+	RayGunMesh->SetHiddenInGame(true);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+
+	// Topple over
+	GetMesh()->SetVisibility(true, true);
+	GetMesh()->SetRelativeLocationAndRotation(MeshBaseLocation, MeshBaseRotation + FRotator(0.0f, 0.0f, 90.0f));
+
+	if (ACosmoChompGameMode* GameMode = GetWorld()->GetAuthGameMode<ACosmoChompGameMode>())
+	{
+		GameMode->HandlePlayerDeath(this);
+	}
+}
+
+void ACosmoChompCharacter::BoardRocket()
+{
+	bInRocket = true;
+	RayGunTimeRemaining = 0.0f;
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	SetActorEnableCollision(false);
+	SetActorHiddenInGame(true);
+}
+
+void ACosmoChompCharacter::Fire(const FInputActionValue& Value)
+{
+	DoFire();
+}
+
+// Used in blueprints
+void ACosmoChompCharacter::DoFire()
+{
+	AController* LocalController = GetController();
+	if (!IsInPlay() || !HasRayGun() || FireCooldownRemaining > 0.0f || !LocalController || !PlanetaryGravity)
+	{
+		return;
+	}
+	FireCooldownRemaining = FireInterval;
+
+	// Aim where the camera looks, flattened onto the surface, and turn to face it
+	const FVector Up = PlanetaryGravity->GetCurrentSurfaceUp();
+	FVector Aim = FVector::VectorPlaneProject(LocalController->GetControlRotation().Vector(), Up).GetSafeNormal();
+	if (Aim.IsNearlyZero())
+	{
+		Aim = GetActorForwardVector();
+	}
+	SetActorRotation(FRotationMatrix::MakeFromXZ(Aim, Up).ToQuat());
+
+	// A straight trace would climb away from the curved ground, so the shot follows
+	// a great circle around the planet at muzzle height, swept one segment at a time.
+	const FVector Center = PlanetaryGravity->GetPlanetCenter();
+	const FVector Muzzle = RayGunHolder->GetComponentLocation() + Aim * RayGunHeldSize * 0.5f;
+	const FVector Radial = Muzzle - Center;
+	const double ArcRadius = FMath::Max(Radial.Size(), 1.0);
+	const FVector ArcUp = Radial / ArcRadius;
+	const FVector ArcForward = FVector::VectorPlaneProject(Aim, ArcUp).GetSafeNormal();
+
+	// The Pawn channel is blocked by walls and characters but only overlapped by pickups
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(RayGun), false, this);
+	const FCollisionShape Shape = FCollisionShape::MakeSphere(20.0f);
+
+	TArray<FVector> BeamPoints = { Muzzle };
+	AActor* HitActor = nullptr;
+	const int32 NumSegments = FMath::Max(FMath::CeilToInt(FireRange / 150.0f), 1);
+	for (int32 Segment = 1; Segment <= NumSegments; ++Segment)
+	{
+		const double Angle = FireRange * Segment / NumSegments / ArcRadius;
+		const FVector Point = Center + (ArcUp * FMath::Cos(Angle) + ArcForward * FMath::Sin(Angle)) * ArcRadius;
+
+		FHitResult Hit;
+		if (GetWorld()->SweepSingleByChannel(Hit, BeamPoints.Last(), Point, FQuat::Identity, ECC_Pawn, Shape, Params))
+		{
+			BeamPoints.Add(Hit.Location);
+			HitActor = Hit.GetActor();
+			break;
+		}
+		BeamPoints.Add(Point);
+	}
+
+	if (AAlienMonster* Alien = Cast<AAlienMonster>(HitActor))
+	{
+		UGameplayStatics::ApplyDamage(Alien, FireDamage, LocalController, this, UDamageType::StaticClass());
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	if (ARayGunBeam* Beam = GetWorld()->SpawnActor<ARayGunBeam>(ARayGunBeam::StaticClass(), FTransform::Identity, SpawnParams))
+	{
+		Beam->SetPoints(BeamPoints, BeamColor);
+	}
+
+	if (ShootSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ShootSound, Muzzle);
+	}
 }

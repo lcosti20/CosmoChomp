@@ -1,8 +1,8 @@
 """
 Creates /Game/Maps/Lvl_CosmoChomp: the planet, lighting, a PlayerStart and the HexMaze actor.
-Re-running it requires deleting the level first. Everything else (maze walls, rocket, orbs, aliens, ray gun) is spawned by ACosmoChompGameMode at runtime.
+Re-running it requires deleting the level first. Everything else (maze walls, rocket, orbs, aliens, ray gun) is spawned by BP_CosmoGameMode at runtime.
 
-Needs the full editor (level editing subsystems aren't available in commandlets) and the C++ module built:
+Needs the full editor (level editing subsystems aren't available in commandlets):
     UnrealEditor.exe CosmoChomp.uproject -ExecutePythonScript=<this file> -unattended -nullrhi
 """
 import unreal
@@ -49,7 +49,8 @@ def main():
     unreal.log(f"[CosmoChompLevel] planet radius {radius:.0f} -> {PLANET_RADIUS:.0f} (scale {scale:.3f})")
 
     # The game mode builds the maze around the planet at runtime
-    maze = spawn(unreal.HexMaze, label="HexMaze")
+    maze_class = unreal.load_asset("/Game/Blueprints/Maze/BP_HexMaze").generated_class()
+    maze = spawn(maze_class, label="HexMaze")
 
     # The player lands on the tile nearest to this
     spawn(unreal.PlayerStart, (0, 0, PLANET_RADIUS + 200), label="PlayerStart")

@@ -35,7 +35,7 @@ To survive and escape, you must:
 ## Technical Stack
 
 - Engine: Unreal Engine 5
-- Primary tooling: C++ and Blueprints
+- Primary tooling: Blueprints (no C++ module; the game was converted from C++, see `Docs/`)
 - Focus areas: procedural generation, maze traversal, enemy AI, combat interactions, player movement, and world design
 - Platform: PC with keyboard/mouse and gamepad support
 
@@ -46,16 +46,23 @@ CosmoChomp/
 ├── Config/                     # Unreal project configuration files
 ├── Content/                    # Game assets, blueprints, maps, materials, and audio
 │   ├── Audio/                  # Sound effects and dialogue audio
-│   ├── Blueprints/             # Core gameplay logic and systems
+│   ├── Blueprints/             # All gameplay logic
+│   │   ├── Core/               # Game mode, player controller, astronaut, HUD, planetary gravity
+│   │   ├── Gameplay/           # Rocket, energy orb, alien, ray gun pickup and beam
+│   │   ├── Maze/               # BP_HexMaze: hex grid on the sphere and maze generation
+│   │   ├── UI/                 # Pause menu, mini map material
+│   │   ├── Interfaces/         # BPI_CosmoPlayer, BPI_Maze
+│   │   └── Library/            # BPFL_PlanetMath
 │   ├── Maps/                   # Level files and test environments
 │   ├── Materials/              # Materials, shaders, and VFX setup
 │   └── Meshes/                 # 3D assets for characters, props, and environment
-├── Source/                     # C++ source code for the project module
-│   └── CosmoChomp/             # Main gameplay implementation
+├── Assets/                     # Raw source models, textures and sounds (imported by Tools/AssetPipeline)
+├── Docs/                       # How the original C++ was converted to Blueprints (start at 00-Overview.md)
+├── Tools/AssetPipeline/        # Scripts that convert and import Assets/ into Content/
 ├── CosmoChomp.uproject         # Unreal Engine project file
 ├── .gitignore                 # Git ignore rules for Unreal projects
 ├── .gitattributes             # Git attributes configuration
-├── .vsconfig                  # Visual Studio configuration for UE projects
+├── .vsconfig                  # Visual Studio configuration (only needed if C++ is ever re-added)
 ├── README.md                  # Project documentation
 ├── LICENSE                    # Project licensing details
 └── .github/                   # GitHub configuration and workflows
@@ -65,8 +72,7 @@ CosmoChomp/
 
 ### Prerequisites
 
-- Unreal Engine 5.x installed through the Epic Games Launcher
-- Visual Studio 2022 with the C++ Game Development workload
+- Unreal Engine 5.8 installed through the Epic Games Launcher (no Visual Studio or compiler needed)
 
 ### Setup
 
@@ -77,22 +83,58 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 ```
 
 2. Open `CosmoChomp.uproject` in Unreal Engine.
-3. If prompted, generate project files and allow Unreal Engine to configure the project.
-4. Open the generated solution in Visual Studio and build the project in Development Editor mode.
-5. Launch the project from Unreal Editor and begin exploring the planet.
+3. Press Play. The game level is `Content/Maps/Lvl_CosmoChomp` (the default map); `Lvl_BlueprintTest` is a sandbox copy used during the conversion.
 
 ## Controls
 
 - Movement: analog stick / WASD
 - Collect energy orbs: move through the maze and pick up glowing power cells
-- Fight back: use the ray gun when you find it to shoot alien monsters
+- Deposit orbs: walk up to the rocket; everything you carry is loaded as fuel
+- Fight back: when you're holding the ray gun, fire a laser with left mouse / F / right trigger; a countdown bar at the bottom of the screen shows how long the gun lasts
 - Escape: gather enough energy and return to your spaceship to leave the planet
+- Mini map (top right): centered on you and turned to face where the camera looks. Lines are tiles and walls, dots are energy orbs, the red triangle is the rocket, the green sideways triangle is a ray gun, and yellow squares are aliens. The rocket and ray gun stay on the rim when out of range, pointing the way. It uses an azimuthal equidistant projection, so distance from the center is true distance over the planet; zoom with `MiniMapRangeDegrees` on `BP_CosmoHUD` (180 shows the whole planet)
+- Pause menu: Escape / P / gamepad Start. In Play-In-Editor, this project moves "Stop" to Shift+Escape (`Config/DefaultEditorSettings.ini`) so Escape reaches the game
+
+## How It Works
+
+A round runs in any level that contains a `BP_HexMaze` actor and a `Planet`-tagged actor (`BP_Planet`). `BP_CosmoGameMode` sets everything up when play starts:
+
+1. **Hex tile maze** (`BP_HexMaze`): the grid tiles the sphere as a Goldberg polyhedron (a subdivided icosahedron: all hexagons plus the 12 pentagons a sphere requires). It sizes the grid from the planet radius and `TargetTileSize`, carves a maze with a randomized depth-first search, then knocks out most dead ends (`BraidChance`) so there are loops to escape aliens through. Walls are the pieces split out of the wall model, stretched along each closed tile edge, with posts covering the corners. Use **Preview In Editor** on the `BP_HexMaze` actor to see a layout without playing; set `Seed` to repeat one.
+2. **Rocket** (`BP_Rocket`): lands on the tile nearest the PlayerStart; the player spawns beside it. Standing near it deposits carried orbs. Once `OrbsRequiredFraction` of the maze's orbs are delivered, the player boards and it launches.
+3. **Energy orbs** (`BP_EnergyOrb`): one per tile. Getting hurt drops every carried orb around you (briefly uncollectable), so bank them often.
+4. **Aliens** (`BP_Alien`): appear after a short grace period, far from the player. They navigate the maze's tile graph (navmesh doesn't work on a sphere): wander, chase when you're within a few tiles, and claw at close range. Three hits and the round restarts.
+5. **Ray gun** (`BP_RayGunPickup`): one starts beside the rocket (toggle with `RayGunAtStart` on the game mode), and later ones spawn on random distant tiles, marked by a tall pink beacon. There's at most one in the maze at a time. Picking it up lets you shoot for 10 seconds, and aliens flee from you while you're armed. Shots follow the curve of the planet. A new gun appears some time after the last runs out.
+
+Tuning lives on the `BP_HexMaze` actor (tile size, braiding, wall sizes) and on `BP_CosmoGameMode`'s variables (orb requirement, alien count, spawn and respawn delays).
+
+## Asset Pipeline
+
+The raw files in `Assets/` are imported by `Tools/AssetPipeline`; the results are already in `Content/` (`Meshes/`, `Materials/`, `Audio/`). To re-import after changing a source asset, close the editor and run:
+
+```bash
+pip install trimesh pycollada
+python Tools/AssetPipeline/build_assets.py
+```
+
+This needs ffmpeg on the `PATH`, Blender 5.x and UE 5.8 (override their paths with the `BLENDER_EXE` / `UE_EDITOR_CMD` environment variables). It converts the MP3 sounds to WAV, converts the ray gun from Collada, fixes the astronaut's mirrored mesh and cuts its single animation into `Idle` (frames 1–41) and `Walk` (61–121) takes, splits the wall model into its six pieces with bottom-centered pivots (`SM_Wall_01`..`06`), then imports everything and builds materials. Re-running updates assets in place; delete a material in the editor if you want it rebuilt. `ue_create_level.py` is the script that created `Lvl_CosmoChomp`.
 
 ## Credits
 
 - Larry Costigan — Game Designer & Developer
 - Course: GAME 266 - Core Principles: Game Tech
 - Instructor: Prof. James Taylor
+
+### Third-party assets
+
+Models (all licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.0/)):
+
+- ["Cute Astronaut"](https://skfb.ly/otLzp) by haefu
+- ["One-eyed Monster with animations"](https://skfb.ly/pDXFI) by Jungle Jim
+- ["Rocket"](https://skfb.ly/6UxWR) by Rafa Andrade
+- ["Simple Ray Gun"](https://skfb.ly/6XyDY) by Playblast
+- ["Wall Ready For Construction"](https://skfb.ly/oRTDy) by Mehdi Shahsavan
+
+Sound effects from Pixabay: [distant bang](https://pixabay.com/sound-effects/distant-bang-472364/), [scorpion claw attack](https://pixabay.com/sound-effects/film-special-effects-scorpion-claw-attack-4-482507/), [footsteps on hard floor](https://pixabay.com/sound-effects/film-special-effects-footsteps-on-hard-floor-356919/), [sci-fi gun shoot](https://pixabay.com/sound-effects/film-special-effects-scifi-gun-shoot-1-266417/), [ough](https://pixabay.com/sound-effects/people-ough-47202/), [rocket launch](https://pixabay.com/sound-effects/film-special-effects-rocket-launch-306441/), [slime](https://pixabay.com/sound-effects/film-special-effects-slime-2-30099/), [cartoon rocket whoosh](https://pixabay.com/sound-effects/film-special-effects-cartoon-rocket-whoosh-229207/).
 
 ## Notes
 

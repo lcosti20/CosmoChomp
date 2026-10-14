@@ -45,12 +45,12 @@ To survive and escape, you must:
 CosmoChomp/
 ├── Config/                     # Unreal project configuration files
 ├── Content/                    # Game assets, blueprints, maps, materials, and audio
-│   ├── Audio/                  # Sound effects and dialogue audio
+│   ├── Audio/                  # Sound effects, dialogue audio and the music loop (S_Music)
 │   ├── Blueprints/             # All gameplay logic
 │   │   ├── Core/               # Game mode, player controller, astronaut, HUD, planetary gravity
 │   │   ├── Gameplay/           # Rocket, energy orb, alien, ray gun pickup and beam
 │   │   ├── Maze/               # BP_HexMaze: hex grid on the sphere and maze generation
-│   │   ├── UI/                 # Pause menu, mini map material
+│   │   ├── UI/                 # Start menu, pause menu, mini map material
 │   │   ├── Interfaces/         # BPI_CosmoPlayer, BPI_Maze
 │   │   └── Library/            # BPFL_PlanetMath
 │   ├── Maps/                   # Level files and test environments
@@ -83,7 +83,11 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 ```
 
 2. Open `CosmoChomp.uproject` in Unreal Engine.
-3. Press Play. The game level is `Content/Maps/Lvl_CosmoChomp` (the default map); `Lvl_BlueprintTest` is a sandbox copy used during the conversion.
+3. Press Play. The editor opens on the game level, `Content/Maps/Lvl_CosmoChomp`, so Play drops straight into a round; `Lvl_BlueprintTest` is a sandbox copy used during the conversion.
+
+A packaged build starts on the start menu, `Content/Maps/Lvl_MainMenu` (the game default map). `WBP_MainMenu` offers Start (loads `Lvl_CosmoChomp`), Credits (the credits below) and Quit; `BP_MenuGameMode` shows it with no pawn, viewed through the level's `MenuCamera`. If you change the Credits section of this README, update the `CreditsBody` text in `WBP_MainMenu` to match.
+
+Background music (`S_Music`, a looping sound wave) starts with the first level and keeps playing across level loads, round restarts included. `BP_CosmoGameInstance` (the project's Game Instance class) spawns it once with *Persist Across Level Transition* set and keeps the audio component; both game modes call its `StartMusic` on BeginPlay, which does nothing if the music is already playing. Change the volume on the `SpawnSound2D` node in `StartMusic` (currently 0.5).
 
 ## Controls
 
@@ -135,6 +139,8 @@ Models (all licensed under [CC BY 4.0](http://creativecommons.org/licenses/by/4.
 - ["Wall Ready For Construction"](https://skfb.ly/oRTDy) by Mehdi Shahsavan
 
 Sound effects from Pixabay: [distant bang](https://pixabay.com/sound-effects/distant-bang-472364/), [scorpion claw attack](https://pixabay.com/sound-effects/film-special-effects-scorpion-claw-attack-4-482507/), [footsteps on hard floor](https://pixabay.com/sound-effects/film-special-effects-footsteps-on-hard-floor-356919/), [sci-fi gun shoot](https://pixabay.com/sound-effects/film-special-effects-scifi-gun-shoot-1-266417/), [ough](https://pixabay.com/sound-effects/people-ough-47202/), [rocket launch](https://pixabay.com/sound-effects/film-special-effects-rocket-launch-306441/), [slime](https://pixabay.com/sound-effects/film-special-effects-slime-2-30099/), [cartoon rocket whoosh](https://pixabay.com/sound-effects/film-special-effects-cartoon-rocket-whoosh-229207/).
+
+Music: ["Video Game Pixel Chiptune Music"](https://pixabay.com/music/synthwave-video-game-pixel-chiptune-music-583271/) by [alex-morgan](https://pixabay.com/users/alex-morgan-54692529/) on Pixabay, used under the Pixabay Content License. The track is registered with YouTube Content ID (license certificate in `Assets/sounds/music/`).
 
 ## Notes
 

@@ -50,7 +50,7 @@ CosmoChomp/
 │   │   ├── Core/               # Game mode, player controller, astronaut, HUD, planetary gravity
 │   │   ├── Gameplay/           # Rocket, energy orb, alien, ray gun pickup and beam
 │   │   ├── Maze/               # BP_HexMaze: hex grid on the sphere and maze generation
-│   │   ├── UI/                 # Pause menu, mini map material
+│   │   ├── UI/                 # Start menu, pause menu, mini map material
 │   │   ├── Interfaces/         # BPI_CosmoPlayer, BPI_Maze
 │   │   └── Library/            # BPFL_PlanetMath
 │   ├── Maps/                   # Level files and test environments
@@ -83,7 +83,9 @@ git clone https://github.com/lcosti20/CosmoChomp.git
 ```
 
 2. Open `CosmoChomp.uproject` in Unreal Engine.
-3. Press Play. The game level is `Content/Maps/Lvl_CosmoChomp` (the default map); `Lvl_BlueprintTest` is a sandbox copy used during the conversion.
+3. Press Play. The editor opens on the game level, `Content/Maps/Lvl_CosmoChomp`, so Play drops straight into a round; `Lvl_BlueprintTest` is a sandbox copy used during the conversion.
+
+A packaged build starts on the start menu, `Content/Maps/Lvl_MainMenu` (the game default map). `WBP_MainMenu` offers Start (loads `Lvl_CosmoChomp`), Credits (the credits below) and Quit; `BP_MenuGameMode` shows it with no pawn, viewed through the level's `MenuCamera`. If you change the Credits section of this README, update the `CreditsBody` text in `WBP_MainMenu` to match.
 
 ## Controls
 

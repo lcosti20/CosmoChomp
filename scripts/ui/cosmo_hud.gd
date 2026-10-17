@@ -133,7 +133,7 @@ func _draw_ray_gun_timer(player: Node, ui_scale: float, screen: Vector2) -> void
 	var remaining: float = player.player_get_ray_gun_time_remaining()
 	var fill := remaining / maxf(player.player_get_ray_gun_duration(), 0.0001)
 	var label := "RAY GUN  %ds" % ceili(remaining)
-	var hint := "Click / F / RT to fire"
+	var hint := "Tap FIRE to shoot" if TouchControls.is_touch_device() else "Click / F / RT to fire"
 
 	var bar_width := 420.0 * ui_scale
 	var bar_height := 16.0 * ui_scale

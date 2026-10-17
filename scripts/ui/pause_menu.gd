@@ -16,6 +16,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	continue_button.pressed.connect(continue_pressed.emit)
 	quit_button.pressed.connect(quit_pressed.emit)
+	# A browser tab can't close itself
+	quit_button.visible = not OS.has_feature("web")
 
 
 func focus_first_button() -> void:

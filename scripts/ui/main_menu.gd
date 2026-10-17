@@ -22,6 +22,8 @@ func _ready() -> void:
 	credits_button.pressed.connect(show_credits)
 	quit_button.pressed.connect(quit_to_desktop)
 	back_button.pressed.connect(show_menu)
+	# A browser tab can't close itself
+	quit_button.visible = not OS.has_feature("web")
 	# UE: Set Input Mode UI Only + Show Mouse Cursor
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	show_menu()
@@ -32,6 +34,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if credits_panel.visible and (event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause")):
 		show_menu()
 		get_viewport().set_input_as_handled()
+
+
+func _notification(what: int) -> void:
+	# Android Back button
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		if credits_panel.visible:
+			show_menu()
+		else:
+			quit_to_desktop()
 
 
 func start_game() -> void:

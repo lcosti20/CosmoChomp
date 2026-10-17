@@ -4,8 +4,9 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://bqwclu5i2nf6p"
 path.s3tc="res://.godot/imported/astronaut_Atronaut_4096.png-382e75af47421636dd62d01cbb4ecf33.s3tc.ctex"
+path.etc2="res://.godot/imported/astronaut_Atronaut_4096.png-382e75af47421636dd62d01cbb4ecf33.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 generator_parameters={
@@ -15,7 +16,7 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/models/glb/astronaut_Atronaut_4096.png"
-dest_files=["res://.godot/imported/astronaut_Atronaut_4096.png-382e75af47421636dd62d01cbb4ecf33.s3tc.ctex"]
+dest_files=["res://.godot/imported/astronaut_Atronaut_4096.png-382e75af47421636dd62d01cbb4ecf33.s3tc.ctex", "res://.godot/imported/astronaut_Atronaut_4096.png-382e75af47421636dd62d01cbb4ecf33.etc2.ctex"]
 
 [params]
 

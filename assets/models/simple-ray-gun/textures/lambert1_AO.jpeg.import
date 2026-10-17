@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://1jgfikbtj7b2"
 path.s3tc="res://.godot/imported/lambert1_AO.jpeg-dc8c5eb5fc8a0e1dc237acb64645e1d7.s3tc.ctex"
+path.etc2="res://.godot/imported/lambert1_AO.jpeg-dc8c5eb5fc8a0e1dc237acb64645e1d7.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/models/simple-ray-gun/textures/lambert1_AO.jpeg"
-dest_files=["res://.godot/imported/lambert1_AO.jpeg-dc8c5eb5fc8a0e1dc237acb64645e1d7.s3tc.ctex"]
+dest_files=["res://.godot/imported/lambert1_AO.jpeg-dc8c5eb5fc8a0e1dc237acb64645e1d7.s3tc.ctex", "res://.godot/imported/lambert1_AO.jpeg-dc8c5eb5fc8a0e1dc237acb64645e1d7.etc2.ctex"]
 
 [params]
 

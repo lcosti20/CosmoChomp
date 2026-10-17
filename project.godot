@@ -13,6 +13,7 @@ config_version=5
 config/name="CosmoChomp"
 config/description="Collect energy orbs on a hex-maze planet, dodge the aliens and escape in your rocket."
 run/main_scene="res://scenes/levels/main_menu.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.7")
 config/icon="res://assets/icon.svg"
 
@@ -25,7 +26,9 @@ GameInstance="*res://scripts/core/cosmo_game_instance.gd"
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=2
+window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+window/handheld/orientation=4
 
 [input]
 
@@ -109,3 +112,4 @@ pause={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

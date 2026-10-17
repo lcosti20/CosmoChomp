@@ -4,6 +4,10 @@ extends Node
 ##
 ## Runs while the game is paused so the same key (Escape, P, gamepad Start) closes the
 ## menu again (UE: IA_Pause has Trigger When Paused checked).
+##
+## Platform additions: Android's Back button toggles the menu, and the game pauses when a
+## phone app goes to the background. In a browser, Escape never reaches the game: the
+## browser uses it to release the mouse, so losing the mouse capture opens the menu.
 
 const PAUSE_MENU_SCENE := preload("res://scenes/ui/pause_menu.tscn")
 
@@ -12,10 +16,32 @@ const PAUSE_MENU_SCENE := preload("res://scenes/ui/pause_menu.tscn")
 
 var pause_menu: PauseMenu = null
 var _pause_layer: CanvasLayer = null
+## True once the browser has granted the mouse capture
+var _had_mouse_capture: bool = false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(OS.has_feature("web") and not TouchControls.is_touch_device())
+
+
+## Web only: watch for the browser releasing the mouse. The capture is granted a few
+## frames after it's requested, so only a capture that was held and then lost counts.
+func _process(_delta: float) -> void:
+	var captured := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if captured:
+		_had_mouse_capture = true
+	elif _had_mouse_capture:
+		_had_mouse_capture = false
+		if not get_tree().paused:
+			open_pause_menu()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		toggle_pause_menu()
+	elif what == NOTIFICATION_APPLICATION_PAUSED and OS.has_feature("mobile"):
+		open_pause_menu()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -52,6 +78,7 @@ func close_pause_menu() -> void:
 	if pause_menu:
 		pause_menu.hide()
 	get_tree().paused = false
+	_had_mouse_capture = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 

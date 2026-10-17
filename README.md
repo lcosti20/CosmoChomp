@@ -8,6 +8,8 @@ Open `project.godot` in Godot 4.7 and press Play. The game starts on the main me
 
 Controls match the original: WASD / arrows / left stick to move, mouse / right stick to look, Space / gamepad A to jump, left mouse / F / right trigger to fire while holding the ray gun, Escape / P / Start to pause.
 
+On phones and tablets (Android, or a mobile browser) on-screen controls appear instead: touch anywhere on the left half for a move stick, drag on the right half to look, and tap JUMP, FIRE (shown while holding the ray gun) and the pause button. Android's Back button pauses, and the game pauses when the app goes to the background. In a desktop browser, Escape releases the mouse rather than reaching the game, so losing the mouse capture opens the pause menu. Quit buttons are hidden on the web.
+
 ## Layout
 
 ```text
@@ -80,7 +82,30 @@ blender -b --factory-startup --python tools/build_models.py
 godot --headless --path . --script tools/smoke_test.gd
 # Screenshots of a running level (optionally holding forward / firing)
 godot --path . --script tools/capture_level.gd -- res://scenes/levels/cosmo_chomp.tscn <out_dir> 1 3 walk fire
+# Touch controls: stick, look, jump, fire, pause
+godot --path . --script tools/touch_test.gd
 ```
+
+## Exporting
+
+`export_presets.cfg` has presets for Windows, Linux, Web and Android; builds go to `build/` (not committed). They export everything except `tools/` and the raw source models, which the game only uses after `tools/build_models.py` converts them.
+
+One-time setup:
+- Export templates: Editor → Manage Export Templates → Download and Install (4.7.2).
+- Android: in Editor Settings → Export → Android, set the Java SDK path (JDK 17) and the Android SDK path. The SDK needs platform-tools and build-tools. Godot creates a debug keystore on the first export, which is enough for installing on your own devices; a Google Play release needs your own release keystore, set in the Android preset (the password is stored in `.godot/export_credentials.cfg`, not in the preset).
+
+```bash
+godot --headless --path . --export-release "Windows Desktop"
+godot --headless --path . --export-release "Linux"
+godot --headless --path . --export-release "Web"
+godot --headless --path . --export-debug "Android"     # signed with the debug keystore
+adb install -r build/android/CosmoChomp.apk
+```
+
+Notes:
+- **Web** is single-threaded, so it runs on any static host (itch.io, GitHub Pages) without special headers. Serve `build/web/` over HTTP (Godot's Remote Debug → Run in Browser, or `python -m http.server`); opening `index.html` from disk doesn't work. The `.pck` is about 94 MB: it carries each texture twice, once for desktop GPUs and once for mobile ones, which is why the alien and wall textures are capped at 1024 px on import.
+- **Android** builds for arm64 phones plus x86_64 for the emulator. The game runs landscape (either way up) and full screen.
+- The UI is laid out for 1920×1080 and scales with the window (`canvas_items` stretch), so it fits browser windows and phone screens.
 
 ## Credits
 

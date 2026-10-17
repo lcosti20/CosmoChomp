@@ -37,3 +37,6 @@ builds/
 # export.cfg
 
 .claude/
+
+# Export output
+build/

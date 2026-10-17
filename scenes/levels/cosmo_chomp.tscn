@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Environment" path="res://assets/materials/space_environment.tres" id="1_env"]
 [ext_resource type="PackedScene" path="res://scenes/world/planet.tscn" id="2_planet"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/core/cosmo_game_mode.gd" id="5_mode"]
 [ext_resource type="Script" path="res://scripts/core/cosmo_player_controller.gd" id="6_pc"]
 [ext_resource type="Script" path="res://scripts/ui/cosmo_hud.gd" id="7_hud"]
+[ext_resource type="Script" path="res://scripts/ui/touch_controls.gd" id="8_touch"]
 
 [node name="CosmoChomp" type="Node3D"]
 
@@ -49,3 +50,13 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("7_hud")
+
+[node name="TouchControls" type="Control" parent="HUDLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("8_touch")

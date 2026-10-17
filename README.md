@@ -2,6 +2,8 @@
 
 A Godot 4.7 sci-fi maze game about collecting energy orbs, returning them to your rocket, dodging aliens, and escaping from a hostile hex-maze planet.
 
+[Play now on itch.io!](http://lcosti20.itch.io/cosmo-chomp)
+
 ## Running
 
 Open `project.godot` in Godot 4.7 and press Play. The game starts on the main menu (`scenes/levels/main_menu.tscn`); Start loads the round (`scenes/levels/cosmo_chomp.tscn`), which you can also run directly if you want to jump straight into gameplay.

@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:ee54e5ba8a5de9b4ff18ceca1de2838610d26c6703ce22f6591839fa1286f9a2
-size 473
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://darbfcnuud54w"
+path="res://.godot/imported/universfield-cartoon-rocket-whoosh-229207.mp3-23b008fad99a7a5366aed736b399bcf8.mp3str"
+
+[deps]
+
+source_file="res://assets/sounds/whoosh/universfield-cartoon-rocket-whoosh-229207.mp3"
+dest_files=["res://.godot/imported/universfield-cartoon-rocket-whoosh-229207.mp3-23b008fad99a7a5366aed736b399bcf8.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

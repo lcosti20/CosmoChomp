@@ -1,3 +1,20 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b4233a45b39296029424c5932300a438583503e1f381be168c2c0d08213df28b
-size 1105
+[gd_resource type="StandardMaterial3D" load_steps=7 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_albedo.jpeg" id="1_albedo"]
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_normal.png" id="2_normal"]
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_roughness.jpeg" id="3_rough"]
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_metallic.jpeg" id="4_metal"]
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_emissive.jpeg" id="5_emissive"]
+[ext_resource type="Texture2D" path="res://assets/models/simple-ray-gun/textures/lambert1_AO.jpeg" id="6_ao"]
+
+[resource]
+albedo_texture = ExtResource("1_albedo")
+metallic = 1.0
+metallic_texture = ExtResource("4_metal")
+roughness_texture = ExtResource("3_rough")
+emission_enabled = true
+emission_texture = ExtResource("5_emissive")
+normal_enabled = true
+normal_texture = ExtResource("2_normal")
+ao_enabled = true
+ao_texture = ExtResource("6_ao")

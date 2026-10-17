@@ -1,3 +1,12 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4e40a1e95757545b9c822bd6d2236597734ecf3ad0b63b86096275e957598ade
-size 153
+[config]
+version=1
+
+[launcher]
+version=1.12.0
+project_name="CosmoChomp"
+
+[editor]
+channel=official
+flavor=gdscript
+base_version=4.7
+version=4.7.2-stable

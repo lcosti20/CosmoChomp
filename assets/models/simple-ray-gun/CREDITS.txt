@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:5f42c5855e08bf41e610cc550e6e7294c12064f428be8d34a173b8f40b837827
-size 147
+"Simple Ray Gun" (https://skfb.ly/6XyDY) by Playblast is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).

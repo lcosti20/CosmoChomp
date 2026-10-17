@@ -1,3 +1,2 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:af2dcd15b65176e2610669f9dcafd748153ec71a85c67f3ce10b76f322e6d850
-size 191
+https://pixabay.com/music/synthwave-video-game-pixel-chiptune-music-583271/
+This track is registered with Youtube Content ID (see synthwave-video-game-pixel-chiptune-music-583271-license.txt)

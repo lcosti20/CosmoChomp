@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:2a954b90650791bd914b9db56b296b1b6ffb2e77109c1859787682a8c639299a
-size 448
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cqd1btkvhleei"
+path="res://.godot/imported/freesound_community-slime-2-30099.mp3-6d72e97e3a613d7e89610a9ab3d1ea20.mp3str"
+
+[deps]
+
+source_file="res://assets/sounds/slime/freesound_community-slime-2-30099.mp3"
+dest_files=["res://.godot/imported/freesound_community-slime-2-30099.mp3-6d72e97e3a613d7e89610a9ab3d1ea20.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

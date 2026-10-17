@@ -1,3 +1,19 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:1983c0ce8f3634525f2c0492fad977d93ca0437c3c787a49ab0e4d8734075d2d
-size 446
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://pkdpebg84frw"
+path="res://.godot/imported/dragon-studio-distant-bang-472364.mp3-2a93ddd5c37a7d39f614201b4d2aedf9.mp3str"
+
+[deps]
+
+source_file="res://assets/sounds/bang/dragon-studio-distant-bang-472364.mp3"
+dest_files=["res://.godot/imported/dragon-studio-distant-bang-472364.mp3-2a93ddd5c37a7d39f614201b4d2aedf9.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

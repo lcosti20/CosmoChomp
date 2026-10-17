@@ -81,11 +81,27 @@ static func local_mesh_aabb(node: Node3D) -> AABB:
 	for mesh_instance: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 		if mesh_instance.mesh == null:
 			continue
-		var to_local := node.global_transform.affine_inverse() * mesh_instance.global_transform
+		var to_local := node.global_transform.affine_inverse() * _rendered_mesh_transform(mesh_instance)
 		var box := to_local * mesh_instance.mesh.get_aabb()
 		result = box if not found else result.merge(box)
 		found = true
 	return result
+
+
+## Where a mesh's vertices actually render. A skinned mesh ignores its own node transform:
+## its vertices go through the skeleton's rest pose and the skin's bind pose instead (the
+## alien's mesh node sits under a 0.33-scaled armature but renders at full size).
+static func _rendered_mesh_transform(mesh_instance: MeshInstance3D) -> Transform3D:
+	var skeleton := mesh_instance.get_node_or_null(mesh_instance.skeleton) as Skeleton3D
+	var skin := mesh_instance.skin
+	if skeleton == null or skin == null or skin.get_bind_count() == 0:
+		return mesh_instance.global_transform
+	var bone := skin.get_bind_bone(0)
+	if bone < 0:
+		bone = skeleton.find_bone(skin.get_bind_name(0))
+	if bone < 0:
+		return mesh_instance.global_transform
+	return skeleton.global_transform * skeleton.get_bone_global_rest(bone) * skin.get_bind_pose(0)
 
 
 ## Scales [param model] so its largest dimension equals [param size]. If [param stand_on_base],

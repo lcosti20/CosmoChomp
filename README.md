@@ -70,6 +70,7 @@ CosmoChomp_GE/
 
 ```bash
 blender -b --factory-startup --python tools/build_models.py
+# or just some of them: ... --python tools/build_models.py -- astronaut rocket
 ```
 
 ## Testing

@@ -4,7 +4,7 @@
 # splits the wall model into its six pieces with bottom-centered pivots.
 #
 # Run (Blender 5.x):
-#   blender -b --factory-startup --python tools/build_models.py
+#   blender -b --factory-startup --python tools/build_models.py [-- astronaut alien rocket walls]
 #
 # The ray gun ships as Collada (model.dae); Godot imports that natively, so it
 # is not converted here.
@@ -86,11 +86,13 @@ def astronaut():
 	arm = next(o for o in bpy.context.scene.objects if o.type == "ARMATURE")
 	take = arm.animation_data.action
 	arm.animation_data.action = None
-	# The source has one take; frames 1-41 are the idle loop, 61-121 the walk.
+	# The source has one take; frames 1-41 are the idle loop, 61-121 the walk. Each strip
+	# starts at frame 0: the exporter samples every clip from frame 0, so a strip placed at
+	# its source frame (61) would hold its first pose for that long before it plays.
 	for clip, (start, end) in {"Idle": (1, 41), "Walk": (61, 121)}.items():
 		track = arm.animation_data.nla_tracks.new()
 		track.name = clip
-		strip = track.strips.new(clip, int(start), take)
+		strip = track.strips.new(clip, 0, take)
 		strip.action_frame_start = start
 		strip.action_frame_end = end
 	export("astronaut", export_animation_mode="NLA_TRACKS")
@@ -172,8 +174,9 @@ def walls():
 	export("walls")
 
 
-astronaut()
-alien()
-rocket()
-walls()
+import sys
+BUILDS = {"astronaut": astronaut, "alien": alien, "rocket": rocket, "walls": walls}
+requested = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else list(BUILDS)
+for name in requested:
+	BUILDS[name]()
 print("BUILD_MODELS_DONE")

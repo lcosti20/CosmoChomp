@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Environment" path="res://assets/materials/space_environment.tres" id="1_env"]
+[ext_resource type="PackedScene" path="res://scenes/world/planet.tscn" id="2_planet"]
+[ext_resource type="Script" path="res://scripts/core/menu_game_mode.gd" id="3_mode"]
+[ext_resource type="PackedScene" path="res://scenes/ui/main_menu.tscn" id="4_menu"]
+
+[node name="MainMenuLevel" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource("1_env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, 0, 0.5, 0.383, 0.643, -0.663, -0.321, 0.766, 0.557, 0, 60, 0)
+light_energy = 1.3
+
+[node name="Planet" parent="." instance=ExtResource("2_planet")]
+
+[node name="MenuCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.94, 0.342, 0, -0.342, 0.94, 0, 42, 80)
+fov = 60.0
+far = 2000.0
+
+[node name="GameMode" type="Node" parent="."]
+script = ExtResource("3_mode")
+menu_camera_path = NodePath("../MenuCamera")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="MainMenu" parent="UILayer" instance=ExtResource("4_menu")]

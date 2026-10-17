@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/planet.gd" id="1_planet"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_planet"]
+albedo_color = Color(0.62, 0.62, 0.64, 1)
+roughness = 0.85
+
+[sub_resource type="SphereMesh" id="SphereMesh_planet"]
+material = SubResource("StandardMaterial3D_planet")
+radius = 30.0
+height = 60.0
+radial_segments = 192
+rings = 96
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_planet"]
+radius = 30.0
+
+[node name="Planet" type="StaticBody3D" groups=["Planet"]]
+collision_mask = 0
+script = ExtResource("1_planet")
+
+[node name="SurfaceMesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_planet")
+
+[node name="SurfaceCollision" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_planet")

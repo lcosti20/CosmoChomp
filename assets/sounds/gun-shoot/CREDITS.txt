@@ -1,1 +1,3 @@
-https://pixabay.com/sound-effects/film-special-effects-scifi-gun-shoot-1-266417/
+version https://git-lfs.github.com/spec/v1
+oid sha256:cc50d19861618bb4288bdbf63a79afacbf7c83797e5437a3ee5e2898ab9518c0
+size 80

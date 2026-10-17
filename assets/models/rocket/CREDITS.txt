@@ -1,1 +1,3 @@
-"Rocket" (https://skfb.ly/6UxWR) by Rafa Andrade is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+version https://git-lfs.github.com/spec/v1
+oid sha256:af6606f63a81c552822c6732a20dd0448f304ec59cbba4c0beea43ebf7db4788
+size 142

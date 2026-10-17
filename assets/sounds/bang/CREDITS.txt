@@ -1,1 +1,3 @@
-https://pixabay.com/sound-effects/distant-bang-472364/
+version https://git-lfs.github.com/spec/v1
+oid sha256:01a25844325de53358a7c2bb3d3e9af1b1ca3d2f47bf7feaad8827b7267f9be0
+size 54

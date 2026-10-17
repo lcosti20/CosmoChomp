@@ -1,1 +1,3 @@
-https://pixabay.com/sound-effects/film-special-effects-scorpion-claw-attack-4-482507/
+version https://git-lfs.github.com/spec/v1
+oid sha256:3c4131e403b253204004600cae759ae8fd9ab46bdc8fcf70438b62961a4035a4
+size 85

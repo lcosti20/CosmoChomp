@@ -58,13 +58,13 @@ CosmoChomp/
 ## Conventions and implementation notes
 
 - Units are meters. Original distances, speeds and accelerations were converted to Godot units (e.g., planet radius 3000 cm → 30 m, walk speed 500 cm/s → 5 m/s).
-- Coordinate conventions follow Godot: -Z is forward, +X is right, and +Y is up. Surface framing, heading, and control rotation are built around the planet-local frame rather than a flat world basis.
+- Coordinate conventions follow Godot: -Z is forward, +X is right, and +Y is up. Surface framing, heading, and control rotation are built around the planet-local frame.
 - Planet surface math is handled by re-flattening the heading, constructing control rotation from yaw/pitch around the local frame, tracing the ray gun across a great circle, and projecting the minimap in azimuthal equidistant space.
 - Collision behavior is implemented using physics layers (`scripts/library/layers.gd`): the ray gun trace mask stops on walls, the planet, the rocket and aliens, and passes through the player while aiming.
 - Walls are MultiMesh instances with box colliders to keep the spherical maze performant while preserving gameplay feel.
-- Sounds are intentionally played unspatialized at full volume to match the original game's audio presentation.
+- Sounds are intentionally played unspatialized at full volume to match the game's audio presentation.
 - The astronaut tips over when killed to match the intended movement and death behavior.
-- The right stick pitch behavior is preserved for parity; `invert_stick_pitch` is available on the astronaut to invert it if desired.
+- The right-stick pitch behavior is preserved for parity; `invert_stick_pitch` is available on the astronaut to invert it if desired.
 - Godot's CharacterBody3D can step off a curved floor when walking straight; the player controller snaps back to the floor each frame to keep movement stable on the planet surface.
 
 ## Assets
